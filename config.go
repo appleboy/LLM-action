@@ -31,7 +31,6 @@ func LoadConfig() (*Config, error) {
 		BaseURL:     os.Getenv("INPUT_BASE_URL"),
 		APIKey:      os.Getenv("INPUT_API_KEY"),
 		Model:       os.Getenv("INPUT_MODEL"),
-		InputPrompt: os.Getenv("INPUT_INPUT_PROMPT"),
 		Temperature: 0.7,  // default
 		MaxTokens:   1000, // default
 	}
@@ -45,9 +44,17 @@ func LoadConfig() (*Config, error) {
 	if config.APIKey == "" {
 		return nil, errAPIKeyRequired
 	}
-	if config.InputPrompt == "" {
+
+	// Load input prompt (supports text, file path, or URL)
+	inputPromptInput := os.Getenv("INPUT_INPUT_PROMPT")
+	if inputPromptInput == "" {
 		return nil, errInputPromptRequired
 	}
+	loadedInputPrompt, err := LoadPrompt(inputPromptInput)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load input_prompt: %w", err)
+	}
+	config.InputPrompt = loadedInputPrompt
 
 	// Load system prompt (supports text, file path, or URL)
 	systemPromptInput := os.Getenv("INPUT_SYSTEM_PROMPT")

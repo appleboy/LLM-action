@@ -1,7 +1,10 @@
 package main
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -270,6 +273,120 @@ func TestConfigParseSkipSSL(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestLoadConfigWithPromptFromFile(t *testing.T) {
+	// Create temporary directory and files
+	tmpDir := t.TempDir()
+	systemPromptFile := filepath.Join(tmpDir, "system.txt")
+	inputPromptFile := filepath.Join(tmpDir, "input.txt")
+
+	systemContent := "You are a code reviewer"
+	inputContent := "Review this code:\nfunc main() {}"
+
+	if err := os.WriteFile(systemPromptFile, []byte(systemContent), 0o600); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+	if err := os.WriteFile(inputPromptFile, []byte(inputContent), 0o600); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	// Test loading from file paths
+	clearEnvVars()
+	os.Setenv("INPUT_API_KEY", "test-key")
+	os.Setenv("INPUT_SYSTEM_PROMPT", systemPromptFile)
+	os.Setenv("INPUT_INPUT_PROMPT", inputPromptFile)
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if config.SystemPrompt != systemContent {
+		t.Errorf("expected system_prompt '%s', got '%s'", systemContent, config.SystemPrompt)
+	}
+	if config.InputPrompt != inputContent {
+		t.Errorf("expected input_prompt '%s', got '%s'", inputContent, config.InputPrompt)
+	}
+
+	clearEnvVars()
+}
+
+func TestLoadConfigWithPromptFromURL(t *testing.T) {
+	// Create test servers
+	systemServer := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			if _, err := w.Write([]byte("System prompt from URL")); err != nil {
+				t.Errorf("failed to write response: %v", err)
+			}
+		}),
+	)
+	defer systemServer.Close()
+
+	inputServer := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			if _, err := w.Write([]byte("Input prompt from URL")); err != nil {
+				t.Errorf("failed to write response: %v", err)
+			}
+		}),
+	)
+	defer inputServer.Close()
+
+	// Test loading from URLs
+	clearEnvVars()
+	os.Setenv("INPUT_API_KEY", "test-key")
+	os.Setenv("INPUT_SYSTEM_PROMPT", systemServer.URL)
+	os.Setenv("INPUT_INPUT_PROMPT", inputServer.URL)
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if config.SystemPrompt != "System prompt from URL" {
+		t.Errorf("expected system_prompt 'System prompt from URL', got '%s'", config.SystemPrompt)
+	}
+	if config.InputPrompt != "Input prompt from URL" {
+		t.Errorf("expected input_prompt 'Input prompt from URL', got '%s'", config.InputPrompt)
+	}
+
+	clearEnvVars()
+}
+
+func TestLoadConfigWithInvalidPromptFile(t *testing.T) {
+	clearEnvVars()
+	os.Setenv("INPUT_API_KEY", "test-key")
+	os.Setenv("INPUT_INPUT_PROMPT", "file:///nonexistent/file.txt")
+
+	_, err := LoadConfig()
+	if err == nil {
+		t.Error("expected error for nonexistent file, got nil")
+	}
+
+	clearEnvVars()
+}
+
+func TestLoadConfigWithInvalidPromptURL(t *testing.T) {
+	// Create a server that returns 404
+	server := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+		}),
+	)
+	defer server.Close()
+
+	clearEnvVars()
+	os.Setenv("INPUT_API_KEY", "test-key")
+	os.Setenv("INPUT_INPUT_PROMPT", server.URL)
+
+	_, err := LoadConfig()
+	if err == nil {
+		t.Error("expected error for 404 URL, got nil")
+	}
+
+	clearEnvVars()
 }
 
 // Helper function to clear all env vars

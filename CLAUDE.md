@@ -26,6 +26,9 @@ golangci-lint run --verbose
 
 # Check Dockerfile
 hadolint Dockerfile
+
+# Fix the golang format
+golangci-lint fmt
 ```
 
 ### Building

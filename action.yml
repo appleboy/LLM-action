@@ -27,7 +27,7 @@ inputs:
     required: false
     default: ''
   input_prompt:
-    description: 'User input prompt for the LLM'
+    description: 'User input prompt for the LLM. Supports plain text, file path, or URL (http://, https://). For files, use absolute/relative path or file:// prefix.'
     required: true
   temperature:
     description: 'Temperature for response randomness (0.0-2.0)'

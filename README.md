@@ -28,7 +28,7 @@ A GitHub Action to interact with OpenAI Compatible LLM services. This action all
 | `model` | Model name to use | No | `gpt-4o` |
 | `skip_ssl_verify` | Skip SSL certificate verification | No | `false` |
 | `system_prompt` | System prompt to set the context. Supports plain text, file path, or URL | No | `''` |
-| `input_prompt` | User input prompt for the LLM | Yes | - |
+| `input_prompt` | User input prompt for the LLM. Supports plain text, file path, or URL | Yes | - |
 | `temperature` | Temperature for response randomness (0.0-2.0) | No | `0.7` |
 | `max_tokens` | Maximum tokens in the response | No | `1000` |
 | `debug` | Enable debug mode to print all parameters (API key will be masked) | No | `false` |
@@ -160,6 +160,33 @@ Load prompts from a remote URL:
     input_prompt: |
       Review this pull request:
       ${{ github.event.pull_request.body }}
+```
+
+### Input Prompt from File
+
+You can also load the input prompt from a file:
+
+```yaml
+- name: Analyze Code from File
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    model: 'gpt-4'
+    system_prompt: 'You are a code analyzer'
+    input_prompt: 'src/main.go'  # Load code from file
+```
+
+### Input Prompt from URL
+
+Load input content from a remote URL:
+
+```yaml
+- name: Analyze Remote Content
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    system_prompt: 'You are a content analyzer'
+    input_prompt: 'https://raw.githubusercontent.com/user/repo/main/content.txt'
 ```
 
 ### Self-Hosted / Local LLM

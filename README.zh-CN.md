@@ -28,7 +28,7 @@
 | `model` | 要使用的模型名称 | 否 | `gpt-4o` |
 | `skip_ssl_verify` | 跳过 SSL 证书验证 | 否 | `false` |
 | `system_prompt` | 设定上下文的系统提示词。支持纯文本、文件路径或 URL | 否 | `''` |
-| `input_prompt` | 用户输入给 LLM 的提示词 | 是 | - |
+| `input_prompt` | 用户输入给 LLM 的提示词。支持纯文本、文件路径或 URL | 是 | - |
 | `temperature` | 响应随机性的温度值（0.0-2.0） | 否 | `0.7` |
 | `max_tokens` | 响应中的最大令牌数 | 否 | `1000` |
 | `debug` | 启用调试模式以显示所有参数（API 密钥将被屏蔽） | 否 | `false` |
@@ -160,6 +160,33 @@ jobs:
     input_prompt: |
       审查此 Pull Request：
       ${{ github.event.pull_request.body }}
+```
+
+### 从文件加载输入提示词
+
+您也可以从文件加载输入提示词：
+
+```yaml
+- name: Analyze Code from File
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    model: 'gpt-4'
+    system_prompt: '你是一位代码分析员'
+    input_prompt: 'src/main.go'  # 从文件加载代码
+```
+
+### 从 URL 加载输入提示词
+
+从远程 URL 加载输入内容：
+
+```yaml
+- name: Analyze Remote Content
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    system_prompt: '你是一位内容分析员'
+    input_prompt: 'https://raw.githubusercontent.com/user/repo/main/content.txt'
 ```
 
 ### 自托管 / 本地 LLM
