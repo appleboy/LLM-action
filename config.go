@@ -28,13 +28,12 @@ type Config struct {
 // LoadConfig loads configuration from environment variables
 func LoadConfig() (*Config, error) {
 	config := &Config{
-		BaseURL:      os.Getenv("INPUT_BASE_URL"),
-		APIKey:       os.Getenv("INPUT_API_KEY"),
-		Model:        os.Getenv("INPUT_MODEL"),
-		SystemPrompt: os.Getenv("INPUT_SYSTEM_PROMPT"),
-		InputPrompt:  os.Getenv("INPUT_INPUT_PROMPT"),
-		Temperature:  0.7,  // default
-		MaxTokens:    1000, // default
+		BaseURL:     os.Getenv("INPUT_BASE_URL"),
+		APIKey:      os.Getenv("INPUT_API_KEY"),
+		Model:       os.Getenv("INPUT_MODEL"),
+		InputPrompt: os.Getenv("INPUT_INPUT_PROMPT"),
+		Temperature: 0.7,  // default
+		MaxTokens:   1000, // default
 	}
 
 	// Set default base URL if not provided
@@ -48,6 +47,16 @@ func LoadConfig() (*Config, error) {
 	}
 	if config.InputPrompt == "" {
 		return nil, errInputPromptRequired
+	}
+
+	// Load system prompt (supports text, file path, or URL)
+	systemPromptInput := os.Getenv("INPUT_SYSTEM_PROMPT")
+	if systemPromptInput != "" {
+		loadedPrompt, err := LoadPrompt(systemPromptInput)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load system_prompt: %w", err)
+		}
+		config.SystemPrompt = loadedPrompt
 	}
 
 	// Parse optional parameters

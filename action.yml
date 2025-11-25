@@ -23,7 +23,7 @@ inputs:
     required: false
     default: 'false'
   system_prompt:
-    description: 'System prompt to set the context'
+    description: 'System prompt to set the context. Supports plain text, file path, or URL (http://, https://). For files, use absolute/relative path or file:// prefix.'
     required: false
     default: ''
   input_prompt:

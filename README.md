@@ -27,7 +27,7 @@ A GitHub Action to interact with OpenAI Compatible LLM services. This action all
 | `api_key` | API Key for authentication | Yes | - |
 | `model` | Model name to use | No | `gpt-4o` |
 | `skip_ssl_verify` | Skip SSL certificate verification | No | `false` |
-| `system_prompt` | System prompt to set the context | No | `''` |
+| `system_prompt` | System prompt to set the context. Supports plain text, file path, or URL | No | `''` |
 | `input_prompt` | User input prompt for the LLM | Yes | - |
 | `temperature` | Temperature for response randomness (0.0-2.0) | No | `0.7` |
 | `max_tokens` | Maximum tokens in the response | No | `1000` |
@@ -112,6 +112,54 @@ jobs:
       ${{ github.event.pull_request.body }}
     temperature: '0.3'
     max_tokens: '2000'
+```
+
+### System Prompt from File
+
+Instead of embedding long prompts in YAML, you can load them from a file:
+
+```yaml
+- name: Code Review with Prompt File
+  id: review
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    model: 'gpt-4'
+    system_prompt: '.github/prompts/code-review.txt'
+    input_prompt: |
+      Review this code:
+      ```python
+      def calculate(x, y):
+          return x / y
+      ```
+```
+
+Or using `file://` prefix:
+
+```yaml
+- name: Code Review with File URI
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    system_prompt: 'file://.github/prompts/code-review.txt'
+    input_prompt: 'Review the main.go file'
+```
+
+### System Prompt from URL
+
+Load prompts from a remote URL:
+
+```yaml
+- name: Code Review with Remote Prompt
+  id: review
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    model: 'gpt-4'
+    system_prompt: 'https://raw.githubusercontent.com/your-org/prompts/main/code-review.txt'
+    input_prompt: |
+      Review this pull request:
+      ${{ github.event.pull_request.body }}
 ```
 
 ### Self-Hosted / Local LLM

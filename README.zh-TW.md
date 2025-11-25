@@ -27,7 +27,7 @@
 | `api_key` | 用於驗證的 API 金鑰 | 是 | - |
 | `model` | 要使用的模型名稱 | 否 | `gpt-4o` |
 | `skip_ssl_verify` | 跳過 SSL 憑證驗證 | 否 | `false` |
-| `system_prompt` | 設定情境的系統提示詞 | 否 | `''` |
+| `system_prompt` | 設定情境的系統提示詞。支援純文字、檔案路徑或 URL | 否 | `''` |
 | `input_prompt` | 使用者輸入給 LLM 的提示詞 | 是 | - |
 | `temperature` | 回應隨機性的溫度值（0.0-2.0） | 否 | `0.7` |
 | `max_tokens` | 回應中的最大權杖數 | 否 | `1000` |
@@ -112,6 +112,54 @@ jobs:
       ${{ github.event.pull_request.body }}
     temperature: '0.3'
     max_tokens: '2000'
+```
+
+### 從檔案載入系統提示詞
+
+不需要在 YAML 中嵌入冗長的提示詞，可以從檔案載入：
+
+```yaml
+- name: Code Review with Prompt File
+  id: review
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    model: 'gpt-4'
+    system_prompt: '.github/prompts/code-review.txt'
+    input_prompt: |
+      審查此程式碼：
+      ```python
+      def calculate(x, y):
+          return x / y
+      ```
+```
+
+或使用 `file://` 前綴：
+
+```yaml
+- name: Code Review with File URI
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    system_prompt: 'file://.github/prompts/code-review.txt'
+    input_prompt: '審查 main.go 檔案'
+```
+
+### 從 URL 載入系統提示詞
+
+從遠端 URL 載入提示詞：
+
+```yaml
+- name: Code Review with Remote Prompt
+  id: review
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    model: 'gpt-4'
+    system_prompt: 'https://raw.githubusercontent.com/your-org/prompts/main/code-review.txt'
+    input_prompt: |
+      審查此 Pull Request：
+      ${{ github.event.pull_request.body }}
 ```
 
 ### 自架 / 本地 LLM
