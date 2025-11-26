@@ -6,6 +6,8 @@ import (
 	"testing"
 )
 
+const testModelGPT4 = "gpt-4"
+
 func TestRenderTemplate(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -32,7 +34,7 @@ func TestRenderTemplate(t *testing.T) {
 			name:     "INPUT_ prefix removal",
 			template: "Model: {{.MODEL}}, API Key: {{.API_KEY}}",
 			envVars: map[string]string{
-				"INPUT_MODEL":   "gpt-4",
+				"INPUT_MODEL":   testModelGPT4,
 				"INPUT_API_KEY": "sk-xxx",
 			},
 			want:    "Model: gpt-4, API Key: sk-xxx",
@@ -41,7 +43,7 @@ func TestRenderTemplate(t *testing.T) {
 		{
 			name:     "INPUT_ prefix with both forms",
 			template: "With prefix: {{.INPUT_MODEL}}, Without: {{.MODEL}}",
-			envVars:  map[string]string{"INPUT_MODEL": "gpt-4"},
+			envVars:  map[string]string{"INPUT_MODEL": testModelGPT4},
 			want:     "With prefix: gpt-4, Without: gpt-4",
 			wantErr:  false,
 		},
@@ -132,7 +134,7 @@ Current branch: main`,
 func TestBuildTemplateData(t *testing.T) {
 	// Set up test environment variables
 	testEnvVars := map[string]string{
-		"INPUT_MODEL":       "gpt-4",
+		"INPUT_MODEL":       testModelGPT4,
 		"INPUT_API_KEY":     "sk-test",
 		"GITHUB_REPOSITORY": "owner/repo",
 		"PATH":              "/usr/bin",
@@ -150,11 +152,11 @@ func TestBuildTemplateData(t *testing.T) {
 	data := buildTemplateData()
 
 	// Check that INPUT_ prefixed variables are available both ways
-	if data["INPUT_MODEL"] != "gpt-4" {
-		t.Errorf("Expected INPUT_MODEL to be gpt-4, got %s", data["INPUT_MODEL"])
+	if data["INPUT_MODEL"] != testModelGPT4 {
+		t.Errorf("Expected INPUT_MODEL to be %s, got %s", testModelGPT4, data["INPUT_MODEL"])
 	}
-	if data["MODEL"] != "gpt-4" {
-		t.Errorf("Expected MODEL (without prefix) to be gpt-4, got %s", data["MODEL"])
+	if data["MODEL"] != testModelGPT4 {
+		t.Errorf("Expected MODEL (without prefix) to be %s, got %s", testModelGPT4, data["MODEL"])
 	}
 
 	if data["INPUT_API_KEY"] != "sk-test" {
