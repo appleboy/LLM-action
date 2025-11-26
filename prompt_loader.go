@@ -15,23 +15,39 @@ import (
 // - If starts with http:// or https:// -> loads from URL
 // - If starts with file:// or is a valid file path -> loads from file
 // - Otherwise -> returns as plain text
+// After loading, it renders the content as a Go template with environment variables
 func LoadPrompt(input string) (string, error) {
 	if input == "" {
 		return "", nil
 	}
 
-	// Check if it's a URL
-	if isURL(input) {
-		return loadFromURL(input)
+	var content string
+	var err error
+
+	// Determine source type and load content
+	switch {
+	case isURL(input):
+		content, err = loadFromURL(input)
+		if err != nil {
+			return "", err
+		}
+	case isFilePath(input):
+		content, err = loadFromFile(input)
+		if err != nil {
+			return "", err
+		}
+	default:
+		// Return as plain text
+		content = input
 	}
 
-	// Check if it's a file path
-	if isFilePath(input) {
-		return loadFromFile(input)
+	// Render template with environment variables
+	rendered, err := RenderTemplate(content)
+	if err != nil {
+		return "", fmt.Errorf("failed to render template: %w", err)
 	}
 
-	// Return as plain text
-	return input, nil
+	return rendered, nil
 }
 
 // isURL checks if the input string is a URL

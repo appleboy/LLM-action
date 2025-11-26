@@ -23,11 +23,11 @@ inputs:
     required: false
     default: 'false'
   system_prompt:
-    description: 'System prompt to set the context. Supports plain text, file path, or URL (http://, https://). For files, use absolute/relative path or file:// prefix.'
+    description: 'System prompt to set the context. Supports plain text, file path, or URL (http://, https://). For files, use absolute/relative path or file:// prefix. Supports Go templates with environment variables (e.g., {{.GITHUB_REPOSITORY}}, {{.MODEL}}).'
     required: false
     default: ''
   input_prompt:
-    description: 'User input prompt for the LLM. Supports plain text, file path, or URL (http://, https://). For files, use absolute/relative path or file:// prefix.'
+    description: 'User input prompt for the LLM. Supports plain text, file path, or URL (http://, https://). For files, use absolute/relative path or file:// prefix. Supports Go templates with environment variables (e.g., {{.GITHUB_REPOSITORY}}, {{.MODEL}}).'
     required: true
   temperature:
     description: 'Temperature for response randomness (0.0-2.0)'

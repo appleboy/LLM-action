@@ -18,25 +18,26 @@
 - 📝 輸出回應可用於後續 Actions
 - 🎛️ 可配置的溫度和最大權杖數
 - 🐛 偵錯模式，並安全地遮罩 API 金鑰
+- 🎨 支援 Go 模板語法，可動態插入環境變數
 
 ## 輸入參數
 
-| 輸入 | 說明 | 必填 | 預設值 |
-|-------|-------------|----------|------------|
-| `base_url` | OpenAI 相容 API 端點的基礎 URL | 否 | `https://api.openai.com/v1` |
-| `api_key` | 用於驗證的 API 金鑰 | 是 | - |
-| `model` | 要使用的模型名稱 | 否 | `gpt-4o` |
-| `skip_ssl_verify` | 跳過 SSL 憑證驗證 | 否 | `false` |
-| `system_prompt` | 設定情境的系統提示詞。支援純文字、檔案路徑或 URL | 否 | `''` |
-| `input_prompt` | 使用者輸入給 LLM 的提示詞。支援純文字、檔案路徑或 URL | 是 | - |
-| `temperature` | 回應隨機性的溫度值（0.0-2.0） | 否 | `0.7` |
-| `max_tokens` | 回應中的最大權杖數 | 否 | `1000` |
-| `debug` | 啟用偵錯模式以顯示所有參數（API 金鑰將被遮罩） | 否 | `false` |
+| 輸入              | 說明                                                                              | 必填 | 預設值                      |
+| ----------------- | --------------------------------------------------------------------------------- | ---- | --------------------------- |
+| `base_url`        | OpenAI 相容 API 端點的基礎 URL                                                    | 否   | `https://api.openai.com/v1` |
+| `api_key`         | 用於驗證的 API 金鑰                                                               | 是   | -                           |
+| `model`           | 要使用的模型名稱                                                                  | 否   | `gpt-4o`                    |
+| `skip_ssl_verify` | 跳過 SSL 憑證驗證                                                                 | 否   | `false`                     |
+| `system_prompt`   | 設定情境的系統提示詞。支援純文字、檔案路徑或 URL。支援 Go 模板語法與環境變數      | 否   | `''`                        |
+| `input_prompt`    | 使用者輸入給 LLM 的提示詞。支援純文字、檔案路徑或 URL。支援 Go 模板語法與環境變數 | 是   | -                           |
+| `temperature`     | 回應隨機性的溫度值（0.0-2.0）                                                     | 否   | `0.7`                       |
+| `max_tokens`      | 回應中的最大權杖數                                                                | 否   | `1000`                      |
+| `debug`           | 啟用偵錯模式以顯示所有參數（API 金鑰將被遮罩）                                    | 否   | `false`                     |
 
 ## 輸出參數
 
-| 輸出 | 說明 |
-|--------|-------------|
+| 輸出       | 說明            |
+| ---------- | --------------- |
 | `response` | 來自 LLM 的回應 |
 
 ## 使用範例
@@ -56,7 +57,7 @@ jobs:
         uses: appleboy/LLM-action@v1
         with:
           api_key: ${{ secrets.OPENAI_API_KEY }}
-          input_prompt: 'What is GitHub Actions?'
+          input_prompt: "What is GitHub Actions?"
 
       - name: Use LLM Response
         run: |
@@ -66,27 +67,27 @@ jobs:
 
 ### 使用系統提示詞
 
-```yaml
+````yaml
 - name: Code Review with LLM
   id: review
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    model: 'gpt-4'
-    system_prompt: '你是一位程式碼審查員。請提供有關程式碼品質、最佳實務和潛在問題的建設性意見。'
+    model: "gpt-4"
+    system_prompt: "你是一位程式碼審查員。請提供有關程式碼品質、最佳實務和潛在問題的建設性意見。"
     input_prompt: |
       請審查此程式碼：
       ```python
       def add(a, b):
           return a + b
       ```
-    temperature: '0.3'
-    max_tokens: '2000'
+    temperature: "0.3"
+    max_tokens: "2000"
 
 - name: Post Review Comment
   run: |
     echo "${{ steps.review.outputs.response }}"
-```
+````
 
 ### 使用多行系統提示詞
 
@@ -96,7 +97,7 @@ jobs:
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    model: 'gpt-4'
+    model: "gpt-4"
     system_prompt: |
       你是一位擁有深厚軟體工程最佳實務知識的專業程式碼審查員。
 
@@ -110,29 +111,29 @@ jobs:
     input_prompt: |
       審查以下 Pull Request 變更：
       ${{ github.event.pull_request.body }}
-    temperature: '0.3'
-    max_tokens: '2000'
+    temperature: "0.3"
+    max_tokens: "2000"
 ```
 
 ### 從檔案載入系統提示詞
 
 不需要在 YAML 中嵌入冗長的提示詞，可以從檔案載入：
 
-```yaml
+````yaml
 - name: Code Review with Prompt File
   id: review
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    model: 'gpt-4'
-    system_prompt: '.github/prompts/code-review.txt'
+    model: "gpt-4"
+    system_prompt: ".github/prompts/code-review.txt"
     input_prompt: |
       審查此程式碼：
       ```python
       def calculate(x, y):
           return x / y
       ```
-```
+````
 
 或使用 `file://` 前綴：
 
@@ -141,8 +142,8 @@ jobs:
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    system_prompt: 'file://.github/prompts/code-review.txt'
-    input_prompt: '審查 main.go 檔案'
+    system_prompt: "file://.github/prompts/code-review.txt"
+    input_prompt: "審查 main.go 檔案"
 ```
 
 ### 從 URL 載入系統提示詞
@@ -155,8 +156,8 @@ jobs:
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    model: 'gpt-4'
-    system_prompt: 'https://raw.githubusercontent.com/your-org/prompts/main/code-review.txt'
+    model: "gpt-4"
+    system_prompt: "https://raw.githubusercontent.com/your-org/prompts/main/code-review.txt"
     input_prompt: |
       審查此 Pull Request：
       ${{ github.event.pull_request.body }}
@@ -171,9 +172,9 @@ jobs:
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    model: 'gpt-4'
-    system_prompt: '你是一位程式碼分析員'
-    input_prompt: 'src/main.go'  # 從檔案載入程式碼
+    model: "gpt-4"
+    system_prompt: "你是一位程式碼分析員"
+    input_prompt: "src/main.go" # 從檔案載入程式碼
 ```
 
 ### 從 URL 載入輸入提示詞
@@ -185,9 +186,120 @@ jobs:
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    system_prompt: '你是一位內容分析員'
-    input_prompt: 'https://raw.githubusercontent.com/user/repo/main/content.txt'
+    system_prompt: "你是一位內容分析員"
+    input_prompt: "https://raw.githubusercontent.com/user/repo/main/content.txt"
 ```
+
+### 在提示詞中使用 Go 模板
+
+`system_prompt` 和 `input_prompt` 都支援 Go 模板語法，讓您可以動態地將環境變數插入到提示詞中。這在 GitHub Actions 工作流程中特別有用，可以包含儲存庫名稱、分支名稱或自訂變數等上下文資訊。
+
+**主要功能：**
+
+- 使用 `{{.VAR_NAME}}` 存取任何環境變數
+- 帶有 `INPUT_` 前綴的環境變數可以使用有或沒有前綴的形式存取
+  - 例如：`INPUT_MODEL` 可以用 `{{.MODEL}}` 或 `{{.INPUT_MODEL}}` 存取
+- 所有 GitHub Actions 預設環境變數都可使用（例如 `GITHUB_REPOSITORY`、`GITHUB_REF_NAME`）
+- 支援完整的 Go 模板語法，包括條件式和函數
+
+#### 範例 1：使用 GitHub Actions 變數
+
+```yaml
+- name: Analyze Repository with Context
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    model: "gpt-4o"
+    system_prompt: |
+      你是一位專業的程式碼分析師。
+      專注於 {{.GITHUB_REPOSITORY}} 儲存庫的分析。
+    input_prompt: |
+      請分析此儲存庫：{{.GITHUB_REPOSITORY}}
+      目前分支：{{.GITHUB_REF_NAME}}
+      使用模型：{{.MODEL}}
+
+      請提供有關程式碼品質和潛在改進的見解。
+```
+
+#### 範例 2：使用自訂環境變數
+
+```yaml
+- name: Set Custom Variables
+  run: |
+    echo "INPUT_PROJECT_TYPE=web-application" >> $GITHUB_ENV
+    echo "INPUT_LANGUAGE=Go" >> $GITHUB_ENV
+
+- name: Code Review with Custom Context
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    system_prompt: |
+      你正在審查一個使用 {{.LANGUAGE}} 撰寫的 {{.PROJECT_TYPE}}。
+      專注於 {{.LANGUAGE}} 開發的最佳實務。
+    input_prompt: |
+      審查 {{.GITHUB_REPOSITORY}} 中的程式碼變更。
+      專案類型：{{.PROJECT_TYPE}}
+      程式語言：{{.LANGUAGE}}
+```
+
+#### 範例 3：模板檔案
+
+建立模板檔案 `.github/prompts/review-template.txt`：
+
+```text
+請審查 {{.GITHUB_REPOSITORY}} 的 Pull Request。
+
+儲存庫：{{.GITHUB_REPOSITORY}}
+分支：{{.GITHUB_REF_NAME}}
+執行者：{{.GITHUB_ACTOR}}
+模型：{{.MODEL}}
+
+重點關注：
+- 程式碼品質
+- 安全性問題
+- 效能影響
+```
+
+然後在工作流程中使用：
+
+```yaml
+- name: Code Review with Template File
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    model: "gpt-4"
+    input_prompt: ".github/prompts/review-template.txt"
+```
+
+#### 範例 4：條件邏輯
+
+```yaml
+- name: Conditional Prompt
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    input_prompt: |
+      分析 {{.GITHUB_REPOSITORY}}
+      {{if .DEBUG}}
+      啟用詳細輸出和詳細說明。
+      {{else}}
+      提供簡潔的摘要。
+      {{end}}
+```
+
+#### 可用的 GitHub Actions 環境變數
+
+可在模板中使用的常見變數：
+
+- `{{.GITHUB_REPOSITORY}}` - 儲存庫名稱（例如 `owner/repo`）
+- `{{.GITHUB_REF_NAME}}` - 分支或標籤名稱
+- `{{.GITHUB_ACTOR}}` - 觸發工作流程的使用者名稱
+- `{{.GITHUB_SHA}}` - Commit SHA
+- `{{.GITHUB_EVENT_NAME}}` - 觸發工作流程的事件
+- `{{.GITHUB_WORKFLOW}}` - 工作流程名稱
+- `{{.GITHUB_RUN_ID}}` - 唯一的工作流程執行 ID
+- `{{.GITHUB_RUN_NUMBER}}` - 唯一的工作流程執行編號
+- 以及工作流程中可用的任何其他環境變數
 
 ### 自架 / 本地 LLM
 
@@ -196,11 +308,11 @@ jobs:
   id: local_llm
   uses: appleboy/LLM-action@v1
   with:
-    base_url: 'http://localhost:8080/v1'
-    api_key: 'your-local-api-key'
-    model: 'llama2'
-    skip_ssl_verify: 'true'
-    input_prompt: '用簡單的術語解釋量子計算'
+    base_url: "http://localhost:8080/v1"
+    api_key: "your-local-api-key"
+    model: "llama2"
+    skip_ssl_verify: "true"
+    input_prompt: "用簡單的術語解釋量子計算"
 ```
 
 ### 搭配 Ollama 使用
@@ -210,11 +322,11 @@ jobs:
   id: ollama
   uses: appleboy/LLM-action@v1
   with:
-    base_url: 'http://localhost:11434/v1'
-    api_key: 'ollama'
-    model: 'llama3'
-    system_prompt: '你是一個樂於助人的助手'
-    input_prompt: '寫一首關於程式設計的俳句'
+    base_url: "http://localhost:11434/v1"
+    api_key: "ollama"
+    model: "llama3"
+    system_prompt: "你是一個樂於助人的助手"
+    input_prompt: "寫一首關於程式設計的俳句"
 ```
 
 ### 鏈結多個 LLM 呼叫
@@ -225,15 +337,15 @@ jobs:
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    input_prompt: '寫一個關於機器人的短篇故事'
-    max_tokens: '500'
+    input_prompt: "寫一個關於機器人的短篇故事"
+    max_tokens: "500"
 
 - name: Translate Story
   id: translate
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    system_prompt: '你是一位翻譯員'
+    system_prompt: "你是一位翻譯員"
     input_prompt: |
       將以下文字翻譯成西班牙文：
       ${{ steps.generate.outputs.response }}
@@ -257,12 +369,12 @@ jobs:
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    model: 'gpt-4'
-    system_prompt: '你是一個樂於助人的助手'
-    input_prompt: '解釋 GitHub Actions 如何運作'
-    temperature: '0.8'
-    max_tokens: '1500'
-    debug: true  # 啟用偵錯模式
+    model: "gpt-4"
+    system_prompt: "你是一個樂於助人的助手"
+    input_prompt: "解釋 GitHub Actions 如何運作"
+    temperature: "0.8"
+    max_tokens: "1500"
+    debug: true # 啟用偵錯模式
 ```
 
 **偵錯輸出範例：**

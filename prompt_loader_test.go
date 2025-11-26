@@ -297,3 +297,136 @@ func TestIsFilePath(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadPrompt_WithTemplate(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		envVars  map[string]string
+		expected string
+		wantErr  bool
+	}{
+		{
+			name:     "plain text with template variable",
+			input:    "Hello, {{.NAME}}!",
+			envVars:  map[string]string{"NAME": "World"},
+			expected: "Hello, World!",
+			wantErr:  false,
+		},
+		{
+			name:     "template with INPUT_ prefix removal",
+			input:    "Model: {{.MODEL}}, Temperature: {{.TEMPERATURE}}",
+			envVars:  map[string]string{"INPUT_MODEL": "gpt-4", "INPUT_TEMPERATURE": "0.7"},
+			expected: "Model: gpt-4, Temperature: 0.7",
+			wantErr:  false,
+		},
+		{
+			name:  "template with GitHub Actions variables",
+			input: "Analyzing {{.GITHUB_REPOSITORY}} on branch {{.GITHUB_REF_NAME}}",
+			envVars: map[string]string{
+				"GITHUB_REPOSITORY": "owner/repo",
+				"GITHUB_REF_NAME":   "main",
+			},
+			expected: "Analyzing owner/repo on branch main",
+			wantErr:  false,
+		},
+		{
+			name:     "template with conditional",
+			input:    "{{if .DEBUG}}Debug enabled{{else}}Debug disabled{{end}}",
+			envVars:  map[string]string{"DEBUG": "true"},
+			expected: "Debug enabled",
+			wantErr:  false,
+		},
+		{
+			name:     "invalid template syntax",
+			input:    "{{.VAR",
+			envVars:  map[string]string{},
+			expected: "",
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Set up environment variables
+			for key, value := range tt.envVars {
+				os.Setenv(key, value)
+			}
+			defer func() {
+				for key := range tt.envVars {
+					os.Unsetenv(key)
+				}
+			}()
+
+			result, err := LoadPrompt(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("LoadPrompt() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && result != tt.expected {
+				t.Errorf("LoadPrompt() = %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestLoadPrompt_FileWithTemplate(t *testing.T) {
+	// Create a temporary directory
+	tmpDir := t.TempDir()
+
+	// Create a file with template content
+	templateContent := "Repository: {{.GITHUB_REPOSITORY}}\nModel: {{.MODEL}}"
+	filePath := filepath.Join(tmpDir, "template.txt")
+	err := os.WriteFile(filePath, []byte(templateContent), 0o600)
+	if err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	// Set up environment variables
+	os.Setenv("GITHUB_REPOSITORY", "appleboy/LLM-action")
+	os.Setenv("INPUT_MODEL", "gpt-4o")
+	defer func() {
+		os.Unsetenv("GITHUB_REPOSITORY")
+		os.Unsetenv("INPUT_MODEL")
+	}()
+
+	// Test LoadPrompt with file path
+	result, err := LoadPrompt(filePath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expected := "Repository: appleboy/LLM-action\nModel: gpt-4o"
+	if result != expected {
+		t.Errorf("LoadPrompt() = %q, want %q", result, expected)
+	}
+}
+
+func TestLoadPrompt_URLWithTemplate(t *testing.T) {
+	// Create test server that returns template content
+	templateContent := "URL Test: {{.TEST_VAR}}"
+	server := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			if _, err := w.Write([]byte(templateContent)); err != nil {
+				t.Errorf("failed to write response: %v", err)
+			}
+		}),
+	)
+	defer server.Close()
+
+	// Set up environment variable
+	os.Setenv("TEST_VAR", "success")
+	defer os.Unsetenv("TEST_VAR")
+
+	// Test LoadPrompt with URL
+	result, err := LoadPrompt(server.URL)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expected := "URL Test: success"
+	if result != expected {
+		t.Errorf("LoadPrompt() = %q, want %q", result, expected)
+	}
+}

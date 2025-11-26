@@ -1,0 +1,11 @@
+Please analyze this repository: {{.GITHUB_REPOSITORY}}
+
+Repository Details:
+- Branch: {{.GITHUB_REF_NAME}}
+- Actor: {{.GITHUB_ACTOR}}
+- Model: {{.MODEL}}
+
+Focus on:
+- Code quality
+- Best practices
+- Security considerations

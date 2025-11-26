@@ -18,25 +18,26 @@ A GitHub Action to interact with OpenAI Compatible LLM services. This action all
 - 📝 Output response available for subsequent actions
 - 🎛️ Configurable temperature and max tokens
 - 🐛 Debug mode with secure API key masking
+- 🎨 Go template support for dynamic prompts with environment variables
 
 ## Inputs
 
-| Input | Description | Required | Default |
-|-------|-------------|----------|---------|
-| `base_url` | Base URL for OpenAI Compatible API endpoint | No | `https://api.openai.com/v1` |
-| `api_key` | API Key for authentication | Yes | - |
-| `model` | Model name to use | No | `gpt-4o` |
-| `skip_ssl_verify` | Skip SSL certificate verification | No | `false` |
-| `system_prompt` | System prompt to set the context. Supports plain text, file path, or URL | No | `''` |
-| `input_prompt` | User input prompt for the LLM. Supports plain text, file path, or URL | Yes | - |
-| `temperature` | Temperature for response randomness (0.0-2.0) | No | `0.7` |
-| `max_tokens` | Maximum tokens in the response | No | `1000` |
-| `debug` | Enable debug mode to print all parameters (API key will be masked) | No | `false` |
+| Input             | Description                                                                                                                | Required | Default                     |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------- |
+| `base_url`        | Base URL for OpenAI Compatible API endpoint                                                                                | No       | `https://api.openai.com/v1` |
+| `api_key`         | API Key for authentication                                                                                                 | Yes      | -                           |
+| `model`           | Model name to use                                                                                                          | No       | `gpt-4o`                    |
+| `skip_ssl_verify` | Skip SSL certificate verification                                                                                          | No       | `false`                     |
+| `system_prompt`   | System prompt to set the context. Supports plain text, file path, or URL. Supports Go templates with environment variables | No       | `''`                        |
+| `input_prompt`    | User input prompt for the LLM. Supports plain text, file path, or URL. Supports Go templates with environment variables    | Yes      | -                           |
+| `temperature`     | Temperature for response randomness (0.0-2.0)                                                                              | No       | `0.7`                       |
+| `max_tokens`      | Maximum tokens in the response                                                                                             | No       | `1000`                      |
+| `debug`           | Enable debug mode to print all parameters (API key will be masked)                                                         | No       | `false`                     |
 
 ## Outputs
 
-| Output | Description |
-|--------|-------------|
+| Output     | Description               |
+| ---------- | ------------------------- |
 | `response` | The response from the LLM |
 
 ## Usage Examples
@@ -56,7 +57,7 @@ jobs:
         uses: appleboy/LLM-action@v1
         with:
           api_key: ${{ secrets.OPENAI_API_KEY }}
-          input_prompt: 'What is GitHub Actions?'
+          input_prompt: "What is GitHub Actions?"
 
       - name: Use LLM Response
         run: |
@@ -66,27 +67,27 @@ jobs:
 
 ### With System Prompt
 
-```yaml
+````yaml
 - name: Code Review with LLM
   id: review
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    model: 'gpt-4'
-    system_prompt: 'You are a code reviewer. Provide constructive feedback on code quality, best practices, and potential issues.'
+    model: "gpt-4"
+    system_prompt: "You are a code reviewer. Provide constructive feedback on code quality, best practices, and potential issues."
     input_prompt: |
       Review this code:
       ```python
       def add(a, b):
           return a + b
       ```
-    temperature: '0.3'
-    max_tokens: '2000'
+    temperature: "0.3"
+    max_tokens: "2000"
 
 - name: Post Review Comment
   run: |
     echo "${{ steps.review.outputs.response }}"
-```
+````
 
 ### With Multiline System Prompt
 
@@ -96,7 +97,7 @@ jobs:
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    model: 'gpt-4'
+    model: "gpt-4"
     system_prompt: |
       You are an expert code reviewer with deep knowledge of software engineering best practices.
 
@@ -110,29 +111,29 @@ jobs:
     input_prompt: |
       Review the following pull request changes:
       ${{ github.event.pull_request.body }}
-    temperature: '0.3'
-    max_tokens: '2000'
+    temperature: "0.3"
+    max_tokens: "2000"
 ```
 
 ### System Prompt from File
 
 Instead of embedding long prompts in YAML, you can load them from a file:
 
-```yaml
+````yaml
 - name: Code Review with Prompt File
   id: review
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    model: 'gpt-4'
-    system_prompt: '.github/prompts/code-review.txt'
+    model: "gpt-4"
+    system_prompt: ".github/prompts/code-review.txt"
     input_prompt: |
       Review this code:
       ```python
       def calculate(x, y):
           return x / y
       ```
-```
+````
 
 Or using `file://` prefix:
 
@@ -141,8 +142,8 @@ Or using `file://` prefix:
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    system_prompt: 'file://.github/prompts/code-review.txt'
-    input_prompt: 'Review the main.go file'
+    system_prompt: "file://.github/prompts/code-review.txt"
+    input_prompt: "Review the main.go file"
 ```
 
 ### System Prompt from URL
@@ -155,8 +156,8 @@ Load prompts from a remote URL:
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    model: 'gpt-4'
-    system_prompt: 'https://raw.githubusercontent.com/your-org/prompts/main/code-review.txt'
+    model: "gpt-4"
+    system_prompt: "https://raw.githubusercontent.com/your-org/prompts/main/code-review.txt"
     input_prompt: |
       Review this pull request:
       ${{ github.event.pull_request.body }}
@@ -171,9 +172,9 @@ You can also load the input prompt from a file:
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    model: 'gpt-4'
-    system_prompt: 'You are a code analyzer'
-    input_prompt: 'src/main.go'  # Load code from file
+    model: "gpt-4"
+    system_prompt: "You are a code analyzer"
+    input_prompt: "src/main.go" # Load code from file
 ```
 
 ### Input Prompt from URL
@@ -185,9 +186,120 @@ Load input content from a remote URL:
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    system_prompt: 'You are a content analyzer'
-    input_prompt: 'https://raw.githubusercontent.com/user/repo/main/content.txt'
+    system_prompt: "You are a content analyzer"
+    input_prompt: "https://raw.githubusercontent.com/user/repo/main/content.txt"
 ```
+
+### Using Go Templates in Prompts
+
+Both `system_prompt` and `input_prompt` support Go templates, allowing you to dynamically insert environment variables into your prompts. This is especially useful for GitHub Actions workflows where you want to include context like repository names, branch names, or custom variables.
+
+**Key Features:**
+
+- Access any environment variable using `{{.VAR_NAME}}`
+- Environment variables with `INPUT_` prefix are available both with and without the prefix
+  - Example: `INPUT_MODEL` can be accessed as `{{.MODEL}}` or `{{.INPUT_MODEL}}`
+- All GitHub Actions default environment variables are available (e.g., `GITHUB_REPOSITORY`, `GITHUB_REF_NAME`)
+- Supports full Go template syntax including conditionals and functions
+
+#### Example 1: Using GitHub Actions Variables
+
+```yaml
+- name: Analyze Repository with Context
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    model: "gpt-4o"
+    system_prompt: |
+      You are an expert code analyzer.
+      Focus on the {{.GITHUB_REPOSITORY}} repository.
+    input_prompt: |
+      Please analyze this repository: {{.GITHUB_REPOSITORY}}
+      Current branch: {{.GITHUB_REF_NAME}}
+      Using model: {{.MODEL}}
+
+      Provide insights on code quality and potential improvements.
+```
+
+#### Example 2: Using Custom Environment Variables
+
+```yaml
+- name: Set Custom Variables
+  run: |
+    echo "INPUT_PROJECT_TYPE=web-application" >> $GITHUB_ENV
+    echo "INPUT_LANGUAGE=Go" >> $GITHUB_ENV
+
+- name: Code Review with Custom Context
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    system_prompt: |
+      You are reviewing a {{.PROJECT_TYPE}} written in {{.LANGUAGE}}.
+      Focus on best practices specific to {{.LANGUAGE}} development.
+    input_prompt: |
+      Review the code changes in {{.GITHUB_REPOSITORY}}.
+      Project type: {{.PROJECT_TYPE}}
+      Language: {{.LANGUAGE}}
+```
+
+#### Example 3: Template in File
+
+Create a template file `.github/prompts/review-template.txt`:
+
+```text
+Please review this pull request for {{.GITHUB_REPOSITORY}}.
+
+Repository: {{.GITHUB_REPOSITORY}}
+Branch: {{.GITHUB_REF_NAME}}
+Actor: {{.GITHUB_ACTOR}}
+Model: {{.MODEL}}
+
+Focus on:
+- Code quality
+- Security issues
+- Performance implications
+```
+
+Then use it in your workflow:
+
+```yaml
+- name: Code Review with Template File
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    model: "gpt-4"
+    input_prompt: ".github/prompts/review-template.txt"
+```
+
+#### Example 4: Conditional Logic
+
+```yaml
+- name: Conditional Prompt
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    input_prompt: |
+      Analyze {{.GITHUB_REPOSITORY}}
+      {{if .DEBUG}}
+      Enable verbose output and detailed explanations.
+      {{else}}
+      Provide a concise summary.
+      {{end}}
+```
+
+#### Available GitHub Actions Environment Variables
+
+Common variables you can use in templates:
+
+- `{{.GITHUB_REPOSITORY}}` - Repository name (e.g., `owner/repo`)
+- `{{.GITHUB_REF_NAME}}` - Branch or tag name
+- `{{.GITHUB_ACTOR}}` - Username of the person who triggered the workflow
+- `{{.GITHUB_SHA}}` - Commit SHA
+- `{{.GITHUB_EVENT_NAME}}` - Event that triggered the workflow
+- `{{.GITHUB_WORKFLOW}}` - Workflow name
+- `{{.GITHUB_RUN_ID}}` - Unique workflow run ID
+- `{{.GITHUB_RUN_NUMBER}}` - Unique workflow run number
+- And any other environment variable available in your workflow
 
 ### Self-Hosted / Local LLM
 
@@ -196,11 +308,11 @@ Load input content from a remote URL:
   id: local_llm
   uses: appleboy/LLM-action@v1
   with:
-    base_url: 'http://localhost:8080/v1'
-    api_key: 'your-local-api-key'
-    model: 'llama2'
-    skip_ssl_verify: 'true'
-    input_prompt: 'Explain quantum computing in simple terms'
+    base_url: "http://localhost:8080/v1"
+    api_key: "your-local-api-key"
+    model: "llama2"
+    skip_ssl_verify: "true"
+    input_prompt: "Explain quantum computing in simple terms"
 ```
 
 ### Using with Ollama
@@ -210,11 +322,11 @@ Load input content from a remote URL:
   id: ollama
   uses: appleboy/LLM-action@v1
   with:
-    base_url: 'http://localhost:11434/v1'
-    api_key: 'ollama'
-    model: 'llama3'
-    system_prompt: 'You are a helpful assistant'
-    input_prompt: 'Write a haiku about programming'
+    base_url: "http://localhost:11434/v1"
+    api_key: "ollama"
+    model: "llama3"
+    system_prompt: "You are a helpful assistant"
+    input_prompt: "Write a haiku about programming"
 ```
 
 ### Chain Multiple LLM Calls
@@ -225,15 +337,15 @@ Load input content from a remote URL:
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    input_prompt: 'Write a short story about a robot'
-    max_tokens: '500'
+    input_prompt: "Write a short story about a robot"
+    max_tokens: "500"
 
 - name: Translate Story
   id: translate
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    system_prompt: 'You are a translator'
+    system_prompt: "You are a translator"
     input_prompt: |
       Translate the following text to Spanish:
       ${{ steps.generate.outputs.response }}
@@ -257,12 +369,12 @@ Enable debug mode to troubleshoot issues and inspect all parameters:
   uses: appleboy/LLM-action@v1
   with:
     api_key: ${{ secrets.OPENAI_API_KEY }}
-    model: 'gpt-4'
-    system_prompt: 'You are a helpful assistant'
-    input_prompt: 'Explain how GitHub Actions work'
-    temperature: '0.8'
-    max_tokens: '1500'
-    debug: true  # Enable debug mode
+    model: "gpt-4"
+    system_prompt: "You are a helpful assistant"
+    input_prompt: "Explain how GitHub Actions work"
+    temperature: "0.8"
+    max_tokens: "1500"
+    debug: true # Enable debug mode
 ```
 
 **Debug Output Example:**
