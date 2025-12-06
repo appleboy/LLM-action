@@ -20,6 +20,7 @@ A GitHub Action to interact with OpenAI Compatible LLM services. This action all
 - 🎛️ Configurable temperature and max tokens
 - 🐛 Debug mode with secure API key masking
 - 🎨 Go template support for dynamic prompts with environment variables
+- 🛠️ Structured output via function calling (tool schema support)
 
 ## Inputs
 
@@ -32,15 +33,19 @@ A GitHub Action to interact with OpenAI Compatible LLM services. This action all
 | `ca_cert`         | Custom CA certificate. Supports certificate content, file path, or URL                                                     | No       | `''`                        |
 | `system_prompt`   | System prompt to set the context. Supports plain text, file path, or URL. Supports Go templates with environment variables | No       | `''`                        |
 | `input_prompt`    | User input prompt for the LLM. Supports plain text, file path, or URL. Supports Go templates with environment variables    | Yes      | -                           |
+| `tool_schema`     | JSON schema for structured output via function calling. Supports plain text, file path, or URL. Supports Go templates      | No       | `''`                        |
 | `temperature`     | Temperature for response randomness (0.0-2.0)                                                                              | No       | `0.7`                       |
 | `max_tokens`      | Maximum tokens in the response                                                                                             | No       | `1000`                      |
 | `debug`           | Enable debug mode to print all parameters (API key will be masked)                                                         | No       | `false`                     |
 
 ## Outputs
 
-| Output     | Description               |
-| ---------- | ------------------------- |
-| `response` | The response from the LLM |
+| Output       | Description                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------------- |
+| `response`   | The response from the LLM (when not using tool_schema)                                            |
+| `<field>`    | When using tool_schema, each field from the function arguments JSON becomes a separate output     |
+
+**Note:** When using `tool_schema`, the outputs are dynamic based on the schema's properties. For example, if your schema defines `city` and `country` fields, the outputs will be `steps.<id>.outputs.city` and `steps.<id>.outputs.country`.
 
 ## Usage Examples
 
@@ -302,6 +307,133 @@ Common variables you can use in templates:
 - `{{.GITHUB_RUN_ID}}` - Unique workflow run ID
 - `{{.GITHUB_RUN_NUMBER}}` - Unique workflow run number
 - And any other environment variable available in your workflow
+
+### Structured Output with Tool Schema
+
+Use `tool_schema` to get structured JSON output from the LLM using function calling. This is useful when you need the LLM to return data in a specific format that can be easily parsed and used in subsequent workflow steps.
+
+#### Basic Structured Output
+
+```yaml
+- name: Extract City Information
+  id: extract
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    input_prompt: "What is the capital of France?"
+    tool_schema: |
+      {
+        "name": "get_city_info",
+        "description": "Get information about a city",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string",
+              "description": "The name of the city"
+            },
+            "country": {
+              "type": "string",
+              "description": "The country where the city is located"
+            }
+          },
+          "required": ["city", "country"]
+        }
+      }
+
+- name: Use Extracted Data
+  run: |
+    echo "City: ${{ steps.extract.outputs.city }}"
+    echo "Country: ${{ steps.extract.outputs.country }}"
+```
+
+#### Code Review with Structured Output
+
+```yaml
+- name: Structured Code Review
+  id: review
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    model: "gpt-4"
+    system_prompt: "You are an expert code reviewer."
+    input_prompt: |
+      Review this code:
+      ```python
+      def divide(a, b):
+          return a / b
+      ```
+    tool_schema: |
+      {
+        "name": "code_review",
+        "description": "Structured code review result",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "score": {
+              "type": "integer",
+              "description": "Code quality score from 1-10"
+            },
+            "issues": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "List of identified issues"
+            },
+            "suggestions": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "List of improvement suggestions"
+            }
+          },
+          "required": ["score", "issues", "suggestions"]
+        }
+      }
+
+- name: Process Review Results
+  run: |
+    echo "Score: ${{ steps.review.outputs.score }}"
+    echo "Issues: ${{ steps.review.outputs.issues }}"
+    echo "Suggestions: ${{ steps.review.outputs.suggestions }}"
+```
+
+#### Tool Schema from File
+
+Store your schema in a file for reusability:
+
+```yaml
+- name: Analyze with Schema File
+  id: analyze
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    input_prompt: "Analyze the sentiment of: I love this product!"
+    tool_schema: ".github/schemas/sentiment-analysis.json"
+```
+
+#### Tool Schema with Go Templates
+
+Use Go templates in your schema for dynamic configuration:
+
+```yaml
+- name: Dynamic Schema
+  uses: appleboy/LLM-action@v1
+  env:
+    INPUT_FUNCTION_NAME: analyze_text
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    input_prompt: "Analyze this text"
+    tool_schema: |
+      {
+        "name": "{{.FUNCTION_NAME}}",
+        "description": "Analyze text content",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "result": { "type": "string" }
+          }
+        }
+      }
+```
 
 ### Self-Hosted / Local LLM
 

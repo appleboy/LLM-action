@@ -20,6 +20,7 @@
 - 🎛️ 可配置的溫度和最大權杖數
 - 🐛 偵錯模式，並安全地遮罩 API 金鑰
 - 🎨 支援 Go 模板語法，可動態插入環境變數
+- 🛠️ 透過函數呼叫支援結構化輸出（tool schema 支援）
 
 ## 輸入參數
 
@@ -32,15 +33,19 @@
 | `ca_cert`         | 自訂 CA 憑證。支援憑證內容、檔案路徑或 URL                                        | 否   | `''`                        |
 | `system_prompt`   | 設定情境的系統提示詞。支援純文字、檔案路徑或 URL。支援 Go 模板語法與環境變數      | 否   | `''`                        |
 | `input_prompt`    | 使用者輸入給 LLM 的提示詞。支援純文字、檔案路徑或 URL。支援 Go 模板語法與環境變數 | 是   | -                           |
+| `tool_schema`     | 用於結構化輸出的 JSON schema（函數呼叫）。支援純文字、檔案路徑或 URL。支援 Go 模板語法 | 否   | `''`                        |
 | `temperature`     | 回應隨機性的溫度值（0.0-2.0）                                                     | 否   | `0.7`                       |
 | `max_tokens`      | 回應中的最大權杖數                                                                | 否   | `1000`                      |
 | `debug`           | 啟用偵錯模式以顯示所有參數（API 金鑰將被遮罩）                                    | 否   | `false`                     |
 
 ## 輸出參數
 
-| 輸出       | 說明            |
-| ---------- | --------------- |
-| `response` | 來自 LLM 的回應 |
+| 輸出       | 說明                                                                     |
+| ---------- | ------------------------------------------------------------------------ |
+| `response` | 來自 LLM 的回應（未使用 tool_schema 時）                                 |
+| `<field>`  | 使用 tool_schema 時，函數參數 JSON 中的每個欄位都會成為獨立的輸出        |
+
+**注意：** 當使用 `tool_schema` 時，輸出會根據 schema 的屬性動態產生。例如，如果您的 schema 定義了 `city` 和 `country` 欄位，輸出將會是 `steps.<id>.outputs.city` 和 `steps.<id>.outputs.country`。
 
 ## 使用範例
 
@@ -302,6 +307,133 @@ jobs:
 - `{{.GITHUB_RUN_ID}}` - 唯一的工作流程執行 ID
 - `{{.GITHUB_RUN_NUMBER}}` - 唯一的工作流程執行編號
 - 以及工作流程中可用的任何其他環境變數
+
+### 使用 Tool Schema 的結構化輸出
+
+使用 `tool_schema` 透過函數呼叫從 LLM 獲取結構化 JSON 輸出。當您需要 LLM 以特定格式回傳資料，以便在後續工作流程步驟中輕鬆解析和使用時，這非常有用。
+
+#### 基本結構化輸出
+
+```yaml
+- name: Extract City Information
+  id: extract
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    input_prompt: "法國的首都是什麼？"
+    tool_schema: |
+      {
+        "name": "get_city_info",
+        "description": "取得城市資訊",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string",
+              "description": "城市名稱"
+            },
+            "country": {
+              "type": "string",
+              "description": "城市所在國家"
+            }
+          },
+          "required": ["city", "country"]
+        }
+      }
+
+- name: Use Extracted Data
+  run: |
+    echo "城市：${{ steps.extract.outputs.city }}"
+    echo "國家：${{ steps.extract.outputs.country }}"
+```
+
+#### 結構化程式碼審查
+
+```yaml
+- name: Structured Code Review
+  id: review
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    model: "gpt-4"
+    system_prompt: "你是一位專業的程式碼審查員。"
+    input_prompt: |
+      審查此程式碼：
+      ```python
+      def divide(a, b):
+          return a / b
+      ```
+    tool_schema: |
+      {
+        "name": "code_review",
+        "description": "結構化程式碼審查結果",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "score": {
+              "type": "integer",
+              "description": "程式碼品質評分 1-10"
+            },
+            "issues": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "發現的問題列表"
+            },
+            "suggestions": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "改進建議列表"
+            }
+          },
+          "required": ["score", "issues", "suggestions"]
+        }
+      }
+
+- name: Process Review Results
+  run: |
+    echo "評分：${{ steps.review.outputs.score }}"
+    echo "問題：${{ steps.review.outputs.issues }}"
+    echo "建議：${{ steps.review.outputs.suggestions }}"
+```
+
+#### 從檔案載入 Tool Schema
+
+將 schema 存放在檔案中以便重複使用：
+
+```yaml
+- name: Analyze with Schema File
+  id: analyze
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    input_prompt: "分析這段文字的情感：我非常喜歡這個產品！"
+    tool_schema: ".github/schemas/sentiment-analysis.json"
+```
+
+#### Tool Schema 搭配 Go 模板
+
+在 schema 中使用 Go 模板進行動態配置：
+
+```yaml
+- name: Dynamic Schema
+  uses: appleboy/LLM-action@v1
+  env:
+    INPUT_FUNCTION_NAME: analyze_text
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    input_prompt: "分析這段文字"
+    tool_schema: |
+      {
+        "name": "{{.FUNCTION_NAME}}",
+        "description": "分析文字內容",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "result": { "type": "string" }
+          }
+        }
+      }
+```
 
 ### 自架 / 本地 LLM
 

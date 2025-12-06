@@ -21,6 +21,7 @@ type Config struct {
 	CACert        string
 	SystemPrompt  string
 	InputPrompt   string
+	ToolSchema    string
 	Temperature   float64
 	MaxTokens     int
 	Debug         bool
@@ -75,6 +76,16 @@ func LoadConfig() (*Config, error) {
 			return nil, fmt.Errorf("failed to load ca_cert: %w", err)
 		}
 		config.CACert = loadedCACert
+	}
+
+	// Load tool schema (supports text, file path, or URL with template rendering)
+	toolSchemaInput := os.Getenv("INPUT_TOOL_SCHEMA")
+	if toolSchemaInput != "" {
+		loadedSchema, err := LoadPrompt(toolSchemaInput)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load tool_schema: %w", err)
+		}
+		config.ToolSchema = loadedSchema
 	}
 
 	// Parse optional parameters

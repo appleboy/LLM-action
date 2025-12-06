@@ -407,53 +407,58 @@ func clearEnvVars() {
 	os.Unsetenv("INPUT_CA_CERT")
 	os.Unsetenv("INPUT_SYSTEM_PROMPT")
 	os.Unsetenv("INPUT_INPUT_PROMPT")
+	os.Unsetenv("INPUT_TOOL_SCHEMA")
 	os.Unsetenv("INPUT_TEMPERATURE")
 	os.Unsetenv("INPUT_MAX_TOKENS")
 	os.Unsetenv("INPUT_DEBUG")
 }
 
-func TestLoadConfigWithCACert(t *testing.T) {
-	// Create temporary file with CA certificate content
-	tmpDir := t.TempDir()
-	caCertFile := filepath.Join(tmpDir, "ca-cert.pem")
+// contentLoadTestCase represents a test case for content loading (CA cert, tool schema, etc.)
+type contentLoadTestCase struct {
+	name        string
+	inputValue  string
+	expected    string
+	expectError bool
+}
 
-	if err := os.WriteFile(caCertFile, []byte(testCACertContent), 0o600); err != nil {
-		t.Fatalf("failed to create test file: %v", err)
-	}
+// runContentLoadTests runs table-driven tests for content loading fields
+func runContentLoadTests(
+	t *testing.T,
+	testContent string,
+	testFile string,
+	envVarName string,
+	getConfigValue func(*Config) string,
+) {
+	t.Helper()
 
-	tests := []struct {
-		name        string
-		caCertValue string
-		expected    string
-		expectError bool
-	}{
+	tests := []contentLoadTestCase{
 		{
-			name:        "CA cert from direct content",
-			caCertValue: testCACertContent,
-			expected:    testCACertContent,
+			name:        "From direct content",
+			inputValue:  testContent,
+			expected:    testContent,
 			expectError: false,
 		},
 		{
-			name:        "CA cert from file path",
-			caCertValue: caCertFile,
-			expected:    testCACertContent,
+			name:        "From file path",
+			inputValue:  testFile,
+			expected:    testContent,
 			expectError: false,
 		},
 		{
-			name:        "CA cert from file:// URI",
-			caCertValue: "file://" + caCertFile,
-			expected:    testCACertContent,
+			name:        "From file:// URI",
+			inputValue:  "file://" + testFile,
+			expected:    testContent,
 			expectError: false,
 		},
 		{
-			name:        "No CA cert",
-			caCertValue: "",
+			name:        "No value",
+			inputValue:  "",
 			expected:    "",
 			expectError: false,
 		},
 		{
 			name:        "Invalid file path",
-			caCertValue: "file:///nonexistent/ca-cert.pem",
+			inputValue:  "file:///nonexistent/file.txt",
 			expected:    "",
 			expectError: true,
 		},
@@ -464,8 +469,8 @@ func TestLoadConfigWithCACert(t *testing.T) {
 			clearEnvVars()
 			os.Setenv("INPUT_API_KEY", "test-key")
 			os.Setenv("INPUT_INPUT_PROMPT", "Hello")
-			if tt.caCertValue != "" {
-				os.Setenv("INPUT_CA_CERT", tt.caCertValue)
+			if tt.inputValue != "" {
+				os.Setenv(envVarName, tt.inputValue)
 			}
 
 			config, err := LoadConfig()
@@ -484,13 +489,27 @@ func TestLoadConfigWithCACert(t *testing.T) {
 				return
 			}
 
-			if config.CACert != tt.expected {
-				t.Errorf("expected ca_cert '%s', got '%s'", tt.expected, config.CACert)
+			actual := getConfigValue(config)
+			if actual != tt.expected {
+				t.Errorf("expected '%s', got '%s'", tt.expected, actual)
 			}
 
 			clearEnvVars()
 		})
 	}
+}
+
+func TestLoadConfigWithCACert(t *testing.T) {
+	tmpDir := t.TempDir()
+	caCertFile := filepath.Join(tmpDir, "ca-cert.pem")
+
+	if err := os.WriteFile(caCertFile, []byte(testCACertContent), 0o600); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	runContentLoadTests(t, testCACertContent, caCertFile, "INPUT_CA_CERT", func(c *Config) string {
+		return c.CACert
+	})
 }
 
 func TestLoadConfigWithCACertFromURL(t *testing.T) {
@@ -538,4 +557,110 @@ func TestConfigParseDebug(t *testing.T) {
 			}
 		})
 	}
+}
+
+// testToolSchemaContent is a sample tool schema JSON for testing
+const testToolSchemaContent = `{
+  "name": "get_city_info",
+  "description": "Get information about a city",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "city": { "type": "string" }
+    },
+    "required": ["city"]
+  }
+}`
+
+func TestLoadConfigWithToolSchema(t *testing.T) {
+	tmpDir := t.TempDir()
+	toolSchemaFile := filepath.Join(tmpDir, "tool-schema.json")
+
+	if err := os.WriteFile(toolSchemaFile, []byte(testToolSchemaContent), 0o600); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	runContentLoadTests(
+		t,
+		testToolSchemaContent,
+		toolSchemaFile,
+		"INPUT_TOOL_SCHEMA",
+		func(c *Config) string {
+			return c.ToolSchema
+		},
+	)
+}
+
+func TestLoadConfigWithToolSchemaFromURL(t *testing.T) {
+	server := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			if _, err := w.Write([]byte(testToolSchemaContent)); err != nil {
+				t.Errorf("failed to write response: %v", err)
+			}
+		}),
+	)
+	defer server.Close()
+
+	clearEnvVars()
+	os.Setenv("INPUT_API_KEY", "test-key")
+	os.Setenv("INPUT_INPUT_PROMPT", "Hello")
+	os.Setenv("INPUT_TOOL_SCHEMA", server.URL)
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if config.ToolSchema != testToolSchemaContent {
+		t.Errorf("expected tool_schema '%s', got '%s'", testToolSchemaContent, config.ToolSchema)
+	}
+
+	clearEnvVars()
+}
+
+func TestLoadConfigWithToolSchemaTemplate(t *testing.T) {
+	// Create temporary file with template content
+	tmpDir := t.TempDir()
+	templateFile := filepath.Join(tmpDir, "tool-schema-template.json")
+
+	templateContent := `{
+  "name": "{{.FUNCTION_NAME}}",
+  "description": "Get information",
+  "parameters": {
+    "type": "object",
+    "properties": {}
+  }
+}`
+
+	if err := os.WriteFile(templateFile, []byte(templateContent), 0o600); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	clearEnvVars()
+	os.Setenv("INPUT_API_KEY", "test-key")
+	os.Setenv("INPUT_INPUT_PROMPT", "Hello")
+	os.Setenv("INPUT_TOOL_SCHEMA", templateFile)
+	os.Setenv("INPUT_FUNCTION_NAME", "my_custom_function")
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expected := `{
+  "name": "my_custom_function",
+  "description": "Get information",
+  "parameters": {
+    "type": "object",
+    "properties": {}
+  }
+}`
+
+	if config.ToolSchema != expected {
+		t.Errorf("expected tool_schema '%s', got '%s'", expected, config.ToolSchema)
+	}
+
+	clearEnvVars()
+	os.Unsetenv("INPUT_FUNCTION_NAME")
 }

@@ -37,6 +37,10 @@ inputs:
     description: 'Maximum tokens in the response'
     required: false
     default: '1000'
+  tool_schema:
+    description: 'JSON schema for structured output via function calling. Supports plain text, file path, or URL. Supports Go templates with environment variables (e.g., {{.GITHUB_REPOSITORY}}).'
+    required: false
+    default: ''
   debug:
     description: 'Enable debug mode to print all parameters'
     required: false
