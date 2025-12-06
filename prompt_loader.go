@@ -10,6 +10,28 @@ import (
 	"time"
 )
 
+// LoadContent intelligently loads content from text, file, or URL without template rendering
+// It detects the input type automatically:
+// - If starts with http:// or https:// -> loads from URL
+// - If starts with file:// or is a valid file path -> loads from file
+// - Otherwise -> returns as plain text
+func LoadContent(input string) (string, error) {
+	if input == "" {
+		return "", nil
+	}
+
+	// Determine source type and load content
+	switch {
+	case isURL(input):
+		return loadFromURL(input)
+	case isFilePath(input):
+		return loadFromFile(input)
+	default:
+		// Return as plain text
+		return input, nil
+	}
+}
+
 // LoadPrompt intelligently loads prompt content from text, file, or URL
 // It detects the input type automatically:
 // - If starts with http:// or https:// -> loads from URL

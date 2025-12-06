@@ -430,3 +430,192 @@ func TestLoadPrompt_URLWithTemplate(t *testing.T) {
 		t.Errorf("LoadPrompt() = %q, want %q", result, expected)
 	}
 }
+
+// Tests for LoadContent function (without template rendering)
+
+func TestLoadContent_PlainText(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "simple text",
+			input:    "-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----",
+			expected: "-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----",
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "text with template syntax should not be rendered",
+			input:    "{{.SHOULD_NOT_RENDER}}",
+			expected: "{{.SHOULD_NOT_RENDER}}",
+		},
+	}
+
+	// Set up environment variable that should NOT be rendered
+	os.Setenv("SHOULD_NOT_RENDER", "rendered")
+	defer os.Unsetenv("SHOULD_NOT_RENDER")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := LoadContent(tt.input)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestLoadContent_File(t *testing.T) {
+	// Create a temporary directory
+	tmpDir := t.TempDir()
+
+	// Create test file with certificate-like content
+	certContent := "-----BEGIN CERTIFICATE-----\nMIIDxTCCAq2gAwIBAgIQAqx...\n-----END CERTIFICATE-----"
+	filePath := filepath.Join(tmpDir, "ca-cert.pem")
+	err := os.WriteFile(filePath, []byte(certContent), 0o600)
+	if err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	tests := []struct {
+		name      string
+		input     string
+		expected  string
+		wantError bool
+	}{
+		{
+			name:      "file path",
+			input:     filePath,
+			expected:  certContent,
+			wantError: false,
+		},
+		{
+			name:      "file:// prefix",
+			input:     "file://" + filePath,
+			expected:  certContent,
+			wantError: false,
+		},
+		{
+			name:      "non-existent file with file:// prefix",
+			input:     "file:///non/existent/file.pem",
+			expected:  "",
+			wantError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := LoadContent(tt.input)
+
+			if tt.wantError {
+				if err == nil {
+					t.Error("expected error, got nil")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("expected %q, got %q", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestLoadContent_URL(t *testing.T) {
+	certContent := "-----BEGIN CERTIFICATE-----\nMIIDxTCCAq2gAwIBAgIQAqx...\n-----END CERTIFICATE-----"
+
+	tests := []struct {
+		name       string
+		content    string
+		statusCode int
+		wantError  bool
+	}{
+		{
+			name:       "successful fetch",
+			content:    certContent,
+			statusCode: http.StatusOK,
+			wantError:  false,
+		},
+		{
+			name:       "404 not found",
+			content:    "",
+			statusCode: http.StatusNotFound,
+			wantError:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(
+				http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(tt.statusCode)
+					if tt.statusCode == http.StatusOK {
+						if _, err := w.Write([]byte(tt.content)); err != nil {
+							t.Errorf("failed to write response: %v", err)
+						}
+					}
+				}),
+			)
+			defer server.Close()
+
+			result, err := LoadContent(server.URL)
+
+			if tt.wantError {
+				if err == nil {
+					t.Error("expected error, got nil")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			if result != tt.content {
+				t.Errorf("expected %q, got %q", tt.content, result)
+			}
+		})
+	}
+}
+
+func TestLoadContent_NoTemplateRendering(t *testing.T) {
+	// Create a temporary file with template syntax
+	tmpDir := t.TempDir()
+	templateContent := "Content with {{.VAR}} that should not be rendered"
+	filePath := filepath.Join(tmpDir, "template.txt")
+	err := os.WriteFile(filePath, []byte(templateContent), 0o600)
+	if err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	// Set environment variable
+	os.Setenv("VAR", "should-not-appear")
+	defer os.Unsetenv("VAR")
+
+	// LoadContent should NOT render the template
+	result, err := LoadContent(filePath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// The template syntax should remain as-is
+	if result != templateContent {
+		t.Errorf(
+			"LoadContent() should not render templates, got %q, want %q",
+			result,
+			templateContent,
+		)
+	}
+}

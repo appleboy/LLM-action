@@ -18,6 +18,7 @@ type Config struct {
 	APIKey        string
 	Model         string
 	SkipSSLVerify bool
+	CACert        string
 	SystemPrompt  string
 	InputPrompt   string
 	Temperature   float64
@@ -64,6 +65,16 @@ func LoadConfig() (*Config, error) {
 			return nil, fmt.Errorf("failed to load system_prompt: %w", err)
 		}
 		config.SystemPrompt = loadedPrompt
+	}
+
+	// Load CA certificate (supports content, file path, or URL)
+	caCertInput := os.Getenv("INPUT_CA_CERT")
+	if caCertInput != "" {
+		loadedCACert, err := LoadContent(caCertInput)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load ca_cert: %w", err)
+		}
+		config.CACert = loadedCACert
 	}
 
 	// Parse optional parameters

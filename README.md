@@ -14,6 +14,7 @@ A GitHub Action to interact with OpenAI Compatible LLM services. This action all
 - 🔐 Support for custom API keys
 - 🔧 Configurable base URL for self-hosted services
 - 🚫 Optional SSL certificate verification skip
+- 🔒 Custom CA certificate support for self-signed certificates
 - 🎯 System prompt support for context setting
 - 📝 Output response available for subsequent actions
 - 🎛️ Configurable temperature and max tokens
@@ -28,6 +29,7 @@ A GitHub Action to interact with OpenAI Compatible LLM services. This action all
 | `api_key`         | API Key for authentication                                                                                                 | Yes      | -                           |
 | `model`           | Model name to use                                                                                                          | No       | `gpt-4o`                    |
 | `skip_ssl_verify` | Skip SSL certificate verification                                                                                          | No       | `false`                     |
+| `ca_cert`         | Custom CA certificate. Supports certificate content, file path, or URL                                                     | No       | `''`                        |
 | `system_prompt`   | System prompt to set the context. Supports plain text, file path, or URL. Supports Go templates with environment variables | No       | `''`                        |
 | `input_prompt`    | User input prompt for the LLM. Supports plain text, file path, or URL. Supports Go templates with environment variables    | Yes      | -                           |
 | `temperature`     | Temperature for response randomness (0.0-2.0)                                                                              | No       | `0.7`                       |
@@ -313,6 +315,61 @@ Common variables you can use in templates:
     model: "llama2"
     skip_ssl_verify: "true"
     input_prompt: "Explain quantum computing in simple terms"
+```
+
+### Using Custom CA Certificate
+
+For self-hosted services with self-signed certificates, you can provide a custom CA certificate. The `ca_cert` input supports three formats:
+
+#### Certificate Content
+
+```yaml
+- name: Call LLM with CA Certificate Content
+  uses: appleboy/LLM-action@v1
+  with:
+    base_url: "https://your-llm-server.local/v1"
+    api_key: ${{ secrets.LLM_API_KEY }}
+    ca_cert: |
+      -----BEGIN CERTIFICATE-----
+      MIIDxTCCAq2gAwIBAgIQAqx...
+      -----END CERTIFICATE-----
+    input_prompt: "Hello, world!"
+```
+
+#### Certificate from File
+
+```yaml
+- name: Call LLM with CA Certificate File
+  uses: appleboy/LLM-action@v1
+  with:
+    base_url: "https://your-llm-server.local/v1"
+    api_key: ${{ secrets.LLM_API_KEY }}
+    ca_cert: "/path/to/ca-cert.pem"
+    input_prompt: "Hello, world!"
+```
+
+Or using `file://` prefix:
+
+```yaml
+- name: Call LLM with CA Certificate File URI
+  uses: appleboy/LLM-action@v1
+  with:
+    base_url: "https://your-llm-server.local/v1"
+    api_key: ${{ secrets.LLM_API_KEY }}
+    ca_cert: "file:///path/to/ca-cert.pem"
+    input_prompt: "Hello, world!"
+```
+
+#### Certificate from URL
+
+```yaml
+- name: Call LLM with CA Certificate from URL
+  uses: appleboy/LLM-action@v1
+  with:
+    base_url: "https://your-llm-server.local/v1"
+    api_key: ${{ secrets.LLM_API_KEY }}
+    ca_cert: "https://your-server.com/ca-cert.pem"
+    input_prompt: "Hello, world!"
 ```
 
 ### Using with Ollama

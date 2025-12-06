@@ -14,6 +14,7 @@
 - 🔐 支持自定义 API 密钥
 - 🔧 可配置的基础 URL，适用于自托管服务
 - 🚫 可选跳过 SSL 证书验证
+- 🔒 支持自定义 CA 证书，适用于自签名证书
 - 🎯 支持系统提示词以设定上下文
 - 📝 输出响应可用于后续 Actions
 - 🎛️ 可配置的温度和最大令牌数
@@ -28,6 +29,7 @@
 | `api_key`         | 用于验证的 API 密钥                                                             | 是   | -                           |
 | `model`           | 要使用的模型名称                                                                | 否   | `gpt-4o`                    |
 | `skip_ssl_verify` | 跳过 SSL 证书验证                                                               | 否   | `false`                     |
+| `ca_cert`         | 自定义 CA 证书。支持证书内容、文件路径或 URL                                    | 否   | `''`                        |
 | `system_prompt`   | 设定上下文的系统提示词。支持纯文本、文件路径或 URL。支持 Go 模板语法与环境变量  | 否   | `''`                        |
 | `input_prompt`    | 用户输入给 LLM 的提示词。支持纯文本、文件路径或 URL。支持 Go 模板语法与环境变量 | 是   | -                           |
 | `temperature`     | 响应随机性的温度值（0.0-2.0）                                                   | 否   | `0.7`                       |
@@ -313,6 +315,61 @@ jobs:
     model: "llama2"
     skip_ssl_verify: "true"
     input_prompt: "用简单的术语解释量子计算"
+```
+
+### 使用自定义 CA 证书
+
+对于使用自签名证书的自托管服务，您可以提供自定义 CA 证书。`ca_cert` 输入支持三种格式：
+
+#### 证书内容
+
+```yaml
+- name: Call LLM with CA Certificate Content
+  uses: appleboy/LLM-action@v1
+  with:
+    base_url: "https://your-llm-server.local/v1"
+    api_key: ${{ secrets.LLM_API_KEY }}
+    ca_cert: |
+      -----BEGIN CERTIFICATE-----
+      MIIDxTCCAq2gAwIBAgIQAqx...
+      -----END CERTIFICATE-----
+    input_prompt: "Hello, world!"
+```
+
+#### 从文件加载证书
+
+```yaml
+- name: Call LLM with CA Certificate File
+  uses: appleboy/LLM-action@v1
+  with:
+    base_url: "https://your-llm-server.local/v1"
+    api_key: ${{ secrets.LLM_API_KEY }}
+    ca_cert: "/path/to/ca-cert.pem"
+    input_prompt: "Hello, world!"
+```
+
+或使用 `file://` 前缀：
+
+```yaml
+- name: Call LLM with CA Certificate File URI
+  uses: appleboy/LLM-action@v1
+  with:
+    base_url: "https://your-llm-server.local/v1"
+    api_key: ${{ secrets.LLM_API_KEY }}
+    ca_cert: "file:///path/to/ca-cert.pem"
+    input_prompt: "Hello, world!"
+```
+
+#### 从 URL 加载证书
+
+```yaml
+- name: Call LLM with CA Certificate from URL
+  uses: appleboy/LLM-action@v1
+  with:
+    base_url: "https://your-llm-server.local/v1"
+    api_key: ${{ secrets.LLM_API_KEY }}
+    ca_cert: "https://your-server.com/ca-cert.pem"
+    input_prompt: "Hello, world!"
 ```
 
 ### 搭配 Ollama 使用

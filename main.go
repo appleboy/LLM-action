@@ -46,7 +46,10 @@ func run() error {
 	}
 
 	// Create OpenAI client
-	client := NewClient(config)
+	client, err := NewClient(config)
+	if err != nil {
+		return fmt.Errorf("failed to create client: %v", err)
+	}
 
 	// Build messages
 	messages := BuildMessages(config)
