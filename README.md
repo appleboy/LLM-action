@@ -42,10 +42,20 @@ A GitHub Action to interact with OpenAI Compatible LLM services. This action all
 
 | Output       | Description                                                                                       |
 | ------------ | ------------------------------------------------------------------------------------------------- |
-| `response`   | The response from the LLM (when not using tool_schema)                                            |
+| `response`   | The raw response from the LLM (always available)                                                  |
 | `<field>`    | When using tool_schema, each field from the function arguments JSON becomes a separate output     |
 
-**Note:** When using `tool_schema`, the outputs are dynamic based on the schema's properties. For example, if your schema defines `city` and `country` fields, the outputs will be `steps.<id>.outputs.city` and `steps.<id>.outputs.country`.
+**Output Behavior:**
+
+- The `response` output is **always available**, containing the raw LLM response
+- When using `tool_schema`, the function arguments are parsed and each field is added as a separate output in addition to `response`
+- **Reserved field:** If your tool schema defines a field named `response`, it will be **skipped** and a warning will be displayed. This is because `response` is reserved for the raw LLM output
+
+**Example:** If your schema defines `city` and `country` fields, the outputs will be:
+
+- `steps.<id>.outputs.response` - The raw JSON response
+- `steps.<id>.outputs.city` - The city field value
+- `steps.<id>.outputs.country` - The country field value
 
 ## Usage Examples
 

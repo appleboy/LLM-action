@@ -141,18 +141,24 @@ func run() error {
 	fmt.Println("--- End Response ---")
 
 	// Set GitHub Actions output
-	var output map[string]string
+	var toolArgs map[string]string
 	if toolMeta != nil {
-		// Parse JSON arguments and set each field as output
+		// Parse JSON arguments
 		var err error
-		output, err = ParseFunctionArguments(response)
+		toolArgs, err = ParseFunctionArguments(response)
 		if err != nil {
 			return fmt.Errorf("failed to parse function arguments: %w", err)
 		}
-	} else {
-		output = map[string]string{
-			"response": response,
-		}
+	}
+
+	// Build output map with raw response and tool arguments
+	output, reservedFieldSkipped := BuildOutputMap(response, toolArgs)
+	if reservedFieldSkipped {
+		fmt.Fprintf(
+			os.Stderr,
+			"Warning: tool schema field '%s' is reserved and will be skipped\n",
+			ReservedOutputField,
+		)
 	}
 
 	if err := gh.SetOutput(output); err != nil {

@@ -42,10 +42,20 @@
 
 | 輸出       | 說明                                                                     |
 | ---------- | ------------------------------------------------------------------------ |
-| `response` | 來自 LLM 的回應（未使用 tool_schema 時）                                 |
+| `response` | 來自 LLM 的原始回應（始終可用）                                          |
 | `<field>`  | 使用 tool_schema 時，函數參數 JSON 中的每個欄位都會成為獨立的輸出        |
 
-**注意：** 當使用 `tool_schema` 時，輸出會根據 schema 的屬性動態產生。例如，如果您的 schema 定義了 `city` 和 `country` 欄位，輸出將會是 `steps.<id>.outputs.city` 和 `steps.<id>.outputs.country`。
+**輸出行為：**
+
+- `response` 輸出**始終可用**，包含 LLM 的原始回應
+- 當使用 `tool_schema` 時，函數參數會被解析，每個欄位都會作為獨立輸出加入，同時保留 `response`
+- **保留欄位：** 如果您的 tool schema 定義了名為 `response` 的欄位，該欄位將被**跳過**並顯示警告訊息。這是因為 `response` 是保留給 LLM 原始輸出使用的
+
+**範例：** 如果您的 schema 定義了 `city` 和 `country` 欄位，輸出將會是：
+
+- `steps.<id>.outputs.response` - 原始 JSON 回應
+- `steps.<id>.outputs.city` - city 欄位的值
+- `steps.<id>.outputs.country` - country 欄位的值
 
 ## 使用範例
 

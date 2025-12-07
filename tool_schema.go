@@ -73,3 +73,28 @@ func ParseFunctionArguments(jsonStr string) (map[string]string, error) {
 
 	return output, nil
 }
+
+// ReservedOutputField is the reserved field name for raw LLM response
+const ReservedOutputField = "response"
+
+// BuildOutputMap builds the final output map from the raw response and parsed tool arguments.
+// It always includes the raw response under the "response" key.
+// If tool arguments are provided, each field is added to the output, except for the
+// reserved "response" field which will be skipped with a warning.
+// Returns the output map and a boolean indicating if the reserved field was skipped.
+func BuildOutputMap(rawResponse string, toolArgs map[string]string) (map[string]string, bool) {
+	output := map[string]string{
+		ReservedOutputField: rawResponse,
+	}
+
+	reservedFieldSkipped := false
+	for k, v := range toolArgs {
+		if k == ReservedOutputField {
+			reservedFieldSkipped = true
+			continue
+		}
+		output[k] = v
+	}
+
+	return output, reservedFieldSkipped
+}

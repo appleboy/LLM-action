@@ -42,10 +42,20 @@
 
 | 输出       | 说明                                                                     |
 | ---------- | ------------------------------------------------------------------------ |
-| `response` | 来自 LLM 的响应（未使用 tool_schema 时）                                 |
+| `response` | 来自 LLM 的原始响应（始终可用）                                          |
 | `<field>`  | 使用 tool_schema 时，函数参数 JSON 中的每个字段都会成为独立的输出        |
 
-**注意：** 当使用 `tool_schema` 时，输出会根据 schema 的属性动态生成。例如，如果您的 schema 定义了 `city` 和 `country` 字段，输出将会是 `steps.<id>.outputs.city` 和 `steps.<id>.outputs.country`。
+**输出行为：**
+
+- `response` 输出**始终可用**，包含 LLM 的原始响应
+- 当使用 `tool_schema` 时，函数参数会被解析，每个字段都会作为独立输出加入，同时保留 `response`
+- **保留字段：** 如果您的 tool schema 定义了名为 `response` 的字段，该字段将被**跳过**并显示警告消息。这是因为 `response` 是保留给 LLM 原始输出使用的
+
+**范例：** 如果您的 schema 定义了 `city` 和 `country` 字段，输出将会是：
+
+- `steps.<id>.outputs.response` - 原始 JSON 响应
+- `steps.<id>.outputs.city` - city 字段的值
+- `steps.<id>.outputs.country` - country 字段的值
 
 ## 使用范例
 

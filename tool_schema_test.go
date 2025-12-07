@@ -424,3 +424,208 @@ func TestParseToolSchemaWithSpecialCharacters(t *testing.T) {
 		t.Errorf("expected description '%s', got '%s'", expectedDesc, meta.Description)
 	}
 }
+
+// TestBuildOutputMap tests the BuildOutputMap function
+func TestBuildOutputMap(t *testing.T) {
+	tests := []struct {
+		name            string
+		rawResponse     string
+		toolArgs        map[string]string
+		expectedOutput  map[string]string
+		expectedSkipped bool
+	}{
+		{
+			name:        "No tool arguments - only raw response",
+			rawResponse: "Hello, world!",
+			toolArgs:    nil,
+			expectedOutput: map[string]string{
+				"response": "Hello, world!",
+			},
+			expectedSkipped: false,
+		},
+		{
+			name:        "Empty tool arguments",
+			rawResponse: "Test response",
+			toolArgs:    map[string]string{},
+			expectedOutput: map[string]string{
+				"response": "Test response",
+			},
+			expectedSkipped: false,
+		},
+		{
+			name:        "Tool arguments without reserved field",
+			rawResponse: `{"city":"Paris","country":"France"}`,
+			toolArgs: map[string]string{
+				"city":    "Paris",
+				"country": "France",
+			},
+			expectedOutput: map[string]string{
+				"response": `{"city":"Paris","country":"France"}`,
+				"city":     "Paris",
+				"country":  "France",
+			},
+			expectedSkipped: false,
+		},
+		{
+			name:        "Tool arguments with reserved 'response' field - should be skipped",
+			rawResponse: `{"response":"custom","city":"Tokyo"}`,
+			toolArgs: map[string]string{
+				"response": "custom",
+				"city":     "Tokyo",
+			},
+			expectedOutput: map[string]string{
+				"response": `{"response":"custom","city":"Tokyo"}`,
+				"city":     "Tokyo",
+			},
+			expectedSkipped: true,
+		},
+		{
+			name:        "Only reserved 'response' field in tool args",
+			rawResponse: `{"response":"should be skipped"}`,
+			toolArgs: map[string]string{
+				"response": "should be skipped",
+			},
+			expectedOutput: map[string]string{
+				"response": `{"response":"should be skipped"}`,
+			},
+			expectedSkipped: true,
+		},
+		{
+			name:        "Multiple fields with reserved field",
+			rawResponse: `{"response":"skip","name":"test","score":"10"}`,
+			toolArgs: map[string]string{
+				"response": "skip",
+				"name":     "test",
+				"score":    "10",
+			},
+			expectedOutput: map[string]string{
+				"response": `{"response":"skip","name":"test","score":"10"}`,
+				"name":     "test",
+				"score":    "10",
+			},
+			expectedSkipped: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output, skipped := BuildOutputMap(tt.rawResponse, tt.toolArgs)
+
+			// Check if reserved field was skipped
+			if skipped != tt.expectedSkipped {
+				t.Errorf("expected skipped=%v, got skipped=%v", tt.expectedSkipped, skipped)
+			}
+
+			// Check output map length
+			if len(output) != len(tt.expectedOutput) {
+				t.Errorf("expected %d keys, got %d keys", len(tt.expectedOutput), len(output))
+			}
+
+			// Check each expected key-value pair
+			for key, expectedValue := range tt.expectedOutput {
+				actualValue, ok := output[key]
+				if !ok {
+					t.Errorf("expected key '%s' not found in output", key)
+					continue
+				}
+				if actualValue != expectedValue {
+					t.Errorf(
+						"for key '%s': expected '%s', got '%s'",
+						key,
+						expectedValue,
+						actualValue,
+					)
+				}
+			}
+		})
+	}
+}
+
+// TestBuildOutputMapResponseFieldAlwaysPresent verifies that the 'response' field
+// is always present in the output, containing the raw LLM response
+func TestBuildOutputMapResponseFieldAlwaysPresent(t *testing.T) {
+	testCases := []struct {
+		name        string
+		rawResponse string
+		toolArgs    map[string]string
+	}{
+		{
+			name:        "With nil tool args",
+			rawResponse: "raw response content",
+			toolArgs:    nil,
+		},
+		{
+			name:        "With empty tool args",
+			rawResponse: "raw response content",
+			toolArgs:    map[string]string{},
+		},
+		{
+			name:        "With tool args",
+			rawResponse: `{"field":"value"}`,
+			toolArgs:    map[string]string{"field": "value"},
+		},
+		{
+			name:        "With tool args containing response field",
+			rawResponse: `{"response":"overwrite attempt"}`,
+			toolArgs:    map[string]string{"response": "overwrite attempt"},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output, _ := BuildOutputMap(tc.rawResponse, tc.toolArgs)
+
+			// Verify 'response' key always exists
+			responseValue, ok := output[ReservedOutputField]
+			if !ok {
+				t.Fatalf("expected '%s' key to always be present in output", ReservedOutputField)
+			}
+
+			// Verify 'response' value is the raw response (not overwritten by tool args)
+			if responseValue != tc.rawResponse {
+				t.Errorf(
+					"expected '%s' value to be '%s', got '%s'",
+					ReservedOutputField,
+					tc.rawResponse,
+					responseValue,
+				)
+			}
+		})
+	}
+}
+
+// TestBuildOutputMapReservedFieldSkipped verifies that when tool args contain
+// a 'response' field, it is skipped and a warning indicator is returned
+func TestBuildOutputMapReservedFieldSkipped(t *testing.T) {
+	rawResponse := `{"response":"should not override","data":"keep"}`
+	toolArgs := map[string]string{
+		"response": "should not override",
+		"data":     "keep",
+	}
+
+	output, skipped := BuildOutputMap(rawResponse, toolArgs)
+
+	// Verify skipped flag is true
+	if !skipped {
+		t.Error("expected skipped to be true when tool args contain 'response' field")
+	}
+
+	// Verify 'response' in output is the raw response, not the tool arg value
+	if output[ReservedOutputField] != rawResponse {
+		t.Errorf(
+			"expected response to be raw response '%s', got '%s'",
+			rawResponse,
+			output[ReservedOutputField],
+		)
+	}
+
+	// Verify 'data' field is included
+	if output["data"] != "keep" {
+		t.Errorf("expected 'data' field to be 'keep', got '%s'", output["data"])
+	}
+
+	// Verify only 2 keys exist (response and data, not the tool's response)
+	if len(output) != 2 {
+		t.Errorf("expected 2 keys in output, got %d", len(output))
+	}
+}
