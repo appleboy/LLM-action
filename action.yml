@@ -45,6 +45,10 @@ inputs:
     description: 'Enable debug mode to print all parameters'
     required: false
     default: 'false'
+  headers:
+    description: 'Custom HTTP headers to include in API requests. Format: "Header1:Value1,Header2:Value2" or multiline with one header per line. Useful for log analysis or custom authentication.'
+    required: false
+    default: ''
 
 outputs:
   response:

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -25,6 +26,7 @@ type Config struct {
 	Temperature   float64
 	MaxTokens     int
 	Debug         bool
+	Headers       map[string]string
 }
 
 // LoadConfig loads configuration from environment variables
@@ -105,6 +107,10 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
+	if err := config.parseHeaders(os.Getenv("INPUT_HEADERS")); err != nil {
+		return nil, err
+	}
+
 	return config, nil
 }
 
@@ -164,5 +170,44 @@ func (c *Config) parseDebug(s string) error {
 		return fmt.Errorf("invalid debug value: %v", err)
 	}
 	c.Debug = debug
+	return nil
+}
+
+// parseHeaders parses headers string to map
+// Format: "Header1:Value1,Header2:Value2" or multiline "Header1:Value1\nHeader2:Value2"
+func (c *Config) parseHeaders(s string) error {
+	if s == "" {
+		return nil
+	}
+
+	c.Headers = make(map[string]string)
+
+	// Support both comma-separated and newline-separated formats
+	// First normalize newlines to commas for consistent parsing
+	normalized := strings.ReplaceAll(s, "\n", ",")
+
+	pairs := strings.Split(normalized, ",")
+	for _, pair := range pairs {
+		pair = strings.TrimSpace(pair)
+		if pair == "" {
+			continue
+		}
+
+		// Split on first colon only (value may contain colons)
+		idx := strings.Index(pair, ":")
+		if idx == -1 {
+			return fmt.Errorf("invalid header format: %q (expected 'Key:Value')", pair)
+		}
+
+		key := strings.TrimSpace(pair[:idx])
+		value := strings.TrimSpace(pair[idx+1:])
+
+		if key == "" {
+			return fmt.Errorf("empty header key in: %q", pair)
+		}
+
+		c.Headers[key] = value
+	}
+
 	return nil
 }

@@ -97,42 +97,56 @@ func TestCreateHTTPClient(t *testing.T) {
 		name          string
 		caCert        string
 		skipSSLVerify bool
-		expectNil     bool
+		customHeaders map[string]string
 		expectError   bool
 	}{
 		{
-			name:          "No custom config returns nil",
+			name:          "Default config with default headers",
 			caCert:        "",
 			skipSSLVerify: false,
-			expectNil:     true,
+			customHeaders: nil,
 			expectError:   false,
 		},
 		{
 			name:          "Skip SSL only",
 			caCert:        "",
 			skipSSLVerify: true,
-			expectNil:     false,
+			customHeaders: nil,
 			expectError:   false,
 		},
 		{
 			name:          "Invalid CA certificate",
 			caCert:        "invalid-cert",
 			skipSSLVerify: false,
-			expectNil:     false,
+			customHeaders: nil,
 			expectError:   true,
 		},
 		{
 			name:          "Invalid CA certificate with skip SSL",
 			caCert:        "invalid-cert",
 			skipSSLVerify: true,
-			expectNil:     false,
+			customHeaders: nil,
 			expectError:   true,
+		},
+		{
+			name:          "Custom headers only",
+			caCert:        "",
+			skipSSLVerify: false,
+			customHeaders: map[string]string{"X-Custom": "value"},
+			expectError:   false,
+		},
+		{
+			name:          "Custom headers with skip SSL",
+			caCert:        "",
+			skipSSLVerify: true,
+			customHeaders: map[string]string{"X-Request-ID": "test123"},
+			expectError:   false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client, err := createHTTPClient(tt.caCert, tt.skipSSLVerify)
+			client, err := createHTTPClient(tt.caCert, tt.skipSSLVerify, tt.customHeaders)
 
 			if tt.expectError {
 				if err == nil {
@@ -146,13 +160,7 @@ func TestCreateHTTPClient(t *testing.T) {
 				return
 			}
 
-			if tt.expectNil {
-				if client != nil {
-					t.Error("expected nil client, got non-nil")
-				}
-				return
-			}
-
+			// Client should always be non-nil (default headers are always added)
 			if client == nil {
 				t.Error("expected non-nil client, got nil")
 				return
@@ -162,5 +170,43 @@ func TestCreateHTTPClient(t *testing.T) {
 				t.Error("expected transport to be set, got nil")
 			}
 		})
+	}
+}
+
+func TestGetDefaultHeaders(t *testing.T) {
+	headers := getDefaultHeaders()
+
+	if headers["User-Agent"] == "" {
+		t.Error("expected User-Agent header to be set")
+	}
+	if headers["X-Action-Name"] != ActionName {
+		t.Errorf("expected X-Action-Name to be %s, got %s", ActionName, headers["X-Action-Name"])
+	}
+	if headers["X-Action-Version"] == "" {
+		t.Error("expected X-Action-Version header to be set")
+	}
+}
+
+func TestMergeHeaders(t *testing.T) {
+	customHeaders := map[string]string{
+		"X-Custom":   "value",
+		"User-Agent": "custom-agent", // Override default
+	}
+
+	merged := mergeHeaders(customHeaders)
+
+	// Custom headers should be present
+	if merged["X-Custom"] != "value" {
+		t.Errorf("expected X-Custom to be 'value', got '%s'", merged["X-Custom"])
+	}
+
+	// Custom User-Agent should override default
+	if merged["User-Agent"] != "custom-agent" {
+		t.Errorf("expected User-Agent to be 'custom-agent', got '%s'", merged["User-Agent"])
+	}
+
+	// Default headers should still be present
+	if merged["X-Action-Name"] != ActionName {
+		t.Errorf("expected X-Action-Name to be %s, got %s", ActionName, merged["X-Action-Name"])
 	}
 }

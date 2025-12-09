@@ -411,6 +411,7 @@ func clearEnvVars() {
 	os.Unsetenv("INPUT_TEMPERATURE")
 	os.Unsetenv("INPUT_MAX_TOKENS")
 	os.Unsetenv("INPUT_DEBUG")
+	os.Unsetenv("INPUT_HEADERS")
 }
 
 // contentLoadTestCase represents a test case for content loading (CA cert, tool schema, etc.)
@@ -663,4 +664,162 @@ func TestLoadConfigWithToolSchemaTemplate(t *testing.T) {
 
 	clearEnvVars()
 	os.Unsetenv("INPUT_FUNCTION_NAME")
+}
+
+func TestConfigParseHeaders(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		expected    map[string]string
+		expectError bool
+	}{
+		{
+			name:        "Empty string",
+			input:       "",
+			expected:    nil,
+			expectError: false,
+		},
+		{
+			name:  "Single header",
+			input: "X-Custom-Header:value123",
+			expected: map[string]string{
+				"X-Custom-Header": "value123",
+			},
+			expectError: false,
+		},
+		{
+			name:  "Multiple headers comma separated",
+			input: "X-Request-ID:abc123,X-Trace-ID:trace456",
+			expected: map[string]string{
+				"X-Request-ID": "abc123",
+				"X-Trace-ID":   "trace456",
+			},
+			expectError: false,
+		},
+		{
+			name:  "Multiple headers newline separated",
+			input: "X-Request-ID:abc123\nX-Trace-ID:trace456",
+			expected: map[string]string{
+				"X-Request-ID": "abc123",
+				"X-Trace-ID":   "trace456",
+			},
+			expectError: false,
+		},
+		{
+			name:  "Headers with spaces",
+			input: "  X-Header1 : value1  ,  X-Header2 : value2  ",
+			expected: map[string]string{
+				"X-Header1": "value1",
+				"X-Header2": "value2",
+			},
+			expectError: false,
+		},
+		{
+			name:  "Value with colon",
+			input: "Authorization:Bearer:token:with:colons",
+			expected: map[string]string{
+				"Authorization": "Bearer:token:with:colons",
+			},
+			expectError: false,
+		},
+		{
+			name:  "Empty value",
+			input: "X-Empty-Value:",
+			expected: map[string]string{
+				"X-Empty-Value": "",
+			},
+			expectError: false,
+		},
+		{
+			name:        "Invalid format no colon",
+			input:       "InvalidHeader",
+			expected:    nil,
+			expectError: true,
+		},
+		{
+			name:        "Empty key",
+			input:       ":value",
+			expected:    nil,
+			expectError: true,
+		},
+		{
+			name:  "Skip empty entries",
+			input: "X-Header1:value1,,X-Header2:value2,",
+			expected: map[string]string{
+				"X-Header1": "value1",
+				"X-Header2": "value2",
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := &Config{}
+			err := config.parseHeaders(tt.input)
+
+			if tt.expectError {
+				if err == nil {
+					t.Error("expected error but got none")
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+
+			if tt.expected == nil {
+				if config.Headers != nil {
+					t.Errorf("expected nil Headers, got %v", config.Headers)
+				}
+				return
+			}
+
+			if len(config.Headers) != len(tt.expected) {
+				t.Errorf("expected %d headers, got %d", len(tt.expected), len(config.Headers))
+				return
+			}
+
+			for key, expectedValue := range tt.expected {
+				if actualValue, ok := config.Headers[key]; !ok {
+					t.Errorf("missing header key: %s", key)
+				} else if actualValue != expectedValue {
+					t.Errorf("header %s: expected '%s', got '%s'", key, expectedValue, actualValue)
+				}
+			}
+		})
+	}
+}
+
+func TestLoadConfigWithHeaders(t *testing.T) {
+	clearEnvVars()
+	os.Setenv("INPUT_API_KEY", "test-key")
+	os.Setenv("INPUT_INPUT_PROMPT", "Hello")
+	os.Setenv("INPUT_HEADERS", "X-Request-ID:test123,X-Trace-ID:trace456")
+
+	config, err := LoadConfig()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expected := map[string]string{
+		"X-Request-ID": "test123",
+		"X-Trace-ID":   "trace456",
+	}
+
+	if len(config.Headers) != len(expected) {
+		t.Errorf("expected %d headers, got %d", len(expected), len(config.Headers))
+	}
+
+	for key, expectedValue := range expected {
+		if actualValue, ok := config.Headers[key]; !ok {
+			t.Errorf("missing header key: %s", key)
+		} else if actualValue != expectedValue {
+			t.Errorf("header %s: expected '%s', got '%s'", key, expectedValue, actualValue)
+		}
+	}
+
+	clearEnvVars()
 }

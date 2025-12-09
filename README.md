@@ -44,6 +44,12 @@ A GitHub Action to interact with OpenAI-compatible LLM services, supporting cust
     - [Using with Ollama](#using-with-ollama)
     - [Chain Multiple LLM Calls](#chain-multiple-llm-calls)
     - [Debug Mode](#debug-mode)
+    - [Custom HTTP Headers](#custom-http-headers)
+      - [Default Headers](#default-headers)
+      - [Custom Headers](#custom-headers)
+      - [Single Line Format](#single-line-format)
+      - [Multiline Format](#multiline-format)
+      - [Headers with Custom Authentication](#headers-with-custom-authentication)
   - [Supported Services](#supported-services)
   - [Security Considerations](#security-considerations)
   - [License](#license)
@@ -62,6 +68,7 @@ A GitHub Action to interact with OpenAI-compatible LLM services, supporting cust
 - 🐛 Debug mode with secure API key masking
 - 🎨 Go template support for dynamic prompts with environment variables
 - 🛠️ Structured output via function calling (tool schema support)
+- 📋 Custom HTTP headers support for log analysis and custom authentication
 
 ## Inputs
 
@@ -78,13 +85,14 @@ A GitHub Action to interact with OpenAI-compatible LLM services, supporting cust
 | `temperature`     | Temperature for response randomness (0.0-2.0)                                                                              | No       | `0.7`                       |
 | `max_tokens`      | Maximum tokens in the response                                                                                             | No       | `1000`                      |
 | `debug`           | Enable debug mode to print all parameters (API key will be masked)                                                         | No       | `false`                     |
+| `headers`         | Custom HTTP headers for API requests. Format: `Header1:Value1,Header2:Value2` or multiline                                 | No       | `''`                        |
 
 ## Outputs
 
-| Output       | Description                                                                                       |
-| ------------ | ------------------------------------------------------------------------------------------------- |
-| `response`   | The raw response from the LLM (always available)                                                  |
-| `<field>`    | When using tool_schema, each field from the function arguments JSON becomes a separate output     |
+| Output     | Description                                                                                   |
+| ---------- | --------------------------------------------------------------------------------------------- |
+| `response` | The raw response from the LLM (always available)                                              |
+| `<field>`  | When using tool_schema, each field from the function arguments JSON becomes a separate output |
 
 **Output Behavior:**
 
@@ -142,7 +150,7 @@ uses: appleboy/LLM-action@main
 
 ### With System Prompt
 
-```yaml
+````yaml
 - name: Code Review with LLM
   id: review
   uses: appleboy/LLM-action@v1
@@ -162,7 +170,7 @@ uses: appleboy/LLM-action@main
 - name: Post Review Comment
   run: |
     echo "${{ steps.review.outputs.response }}"
-```
+````
 
 ### With Multiline System Prompt
 
@@ -194,7 +202,7 @@ uses: appleboy/LLM-action@main
 
 Instead of embedding long prompts in YAML, you can load them from a file:
 
-```yaml
+````yaml
 - name: Code Review with Prompt File
   id: review
   uses: appleboy/LLM-action@v1
@@ -208,7 +216,7 @@ Instead of embedding long prompts in YAML, you can load them from a file:
       def calculate(x, y):
           return x / y
       ```
-```
+````
 
 Or using `file://` prefix:
 
@@ -417,7 +425,7 @@ Use `tool_schema` to get structured JSON output from the LLM using function call
 
 #### Code Review with Structured Output
 
-```yaml
+````yaml
 - name: Structured Code Review
   id: review
   uses: appleboy/LLM-action@v1
@@ -466,7 +474,7 @@ Use `tool_schema` to get structured JSON output from the LLM using function call
     echo "Score: $SCORE"
     echo "Issues: $ISSUES"
     echo "Suggestions: $SUGGESTIONS"
-```
+````
 
 **Why use environment variables instead of direct interpolation?**
 
@@ -707,6 +715,68 @@ main.Config{
 ```
 
 **Security Note:** When debug mode is enabled, the API key is automatically masked (only showing first 4 and last 4 characters) to prevent accidental exposure in logs.
+
+### Custom HTTP Headers
+
+#### Default Headers
+
+Every API request automatically includes the following headers for identification and log analysis:
+
+| Header             | Value                  | Description                             |
+| ------------------ | ---------------------- | --------------------------------------- |
+| `User-Agent`       | `LLM-action/{version}` | Standard User-Agent with action version |
+| `X-Action-Name`    | `appleboy/LLM-action`  | Full name of the GitHub Action          |
+| `X-Action-Version` | `{version}`            | Semantic version of the action          |
+
+These headers help you identify requests from this action in your LLM service logs.
+
+#### Custom Headers
+
+Use the `headers` input to add custom HTTP headers to API requests. This is useful for:
+
+- Adding request tracking IDs for log analysis
+- Custom authentication headers
+- Passing metadata to your LLM service
+
+#### Single Line Format
+
+```yaml
+- name: Call LLM with Custom Headers
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    input_prompt: "Hello, world!"
+    headers: "X-Request-ID:${{ github.run_id }},X-Trace-ID:${{ github.sha }}"
+```
+
+#### Multiline Format
+
+```yaml
+- name: Call LLM with Multiple Headers
+  uses: appleboy/LLM-action@v1
+  with:
+    api_key: ${{ secrets.OPENAI_API_KEY }}
+    input_prompt: "Analyze this code"
+    headers: |
+      X-Request-ID:${{ github.run_id }}
+      X-Trace-ID:${{ github.sha }}
+      X-Environment:production
+      X-Repository:${{ github.repository }}
+```
+
+#### Headers with Custom Authentication
+
+```yaml
+- name: Call Custom LLM Service
+  uses: appleboy/LLM-action@v1
+  with:
+    base_url: "https://your-llm-service.com/v1"
+    api_key: ${{ secrets.LLM_API_KEY }}
+    input_prompt: "Generate a summary"
+    headers: |
+      X-Custom-Auth:${{ secrets.CUSTOM_AUTH_TOKEN }}
+      X-Tenant-ID:my-tenant
+```
 
 ## Supported Services
 

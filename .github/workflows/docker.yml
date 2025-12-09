@@ -73,6 +73,19 @@ jobs:
         uses: docker/setup-buildx-action@v3
         if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
 
+      - name: Get version info
+        id: version
+        if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION="${{ github.ref_name }}"
+            VERSION="${VERSION#v}"
+          else
+            VERSION="dev"
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "commit=${{ github.sha }}" >> $GITHUB_OUTPUT
+
       - name: Docker meta
         id: docker-meta
         if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
@@ -95,6 +108,9 @@ jobs:
           file: Dockerfile
           load: true
           tags: ${{ env.REPO }}:scan
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            COMMIT=${{ steps.version.outputs.commit }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -132,5 +148,8 @@ jobs:
           push: true
           tags: ${{ steps.docker-meta.outputs.tags }}
           labels: ${{ steps.docker-meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            COMMIT=${{ steps.version.outputs.commit }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
