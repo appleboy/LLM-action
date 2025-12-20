@@ -149,8 +149,10 @@ func run() error {
 	if resp.Usage.PromptTokensDetails != nil {
 		fmt.Printf("Cached Tokens: %d\n", resp.Usage.PromptTokensDetails.CachedTokens)
 	}
-	if resp.Usage.CompletionTokensDetails != nil {
-		fmt.Printf("Reasoning Tokens: %d\n", resp.Usage.CompletionTokensDetails.ReasoningTokens)
+	if d := resp.Usage.CompletionTokensDetails; d != nil {
+		fmt.Printf("Reasoning Tokens: %d\n", d.ReasoningTokens)
+		fmt.Printf("Accepted Prediction Tokens: %d\n", d.AcceptedPredictionTokens)
+		fmt.Printf("Rejected Prediction Tokens: %d\n", d.RejectedPredictionTokens)
 	}
 	fmt.Println("--- End Token Usage ---")
 
