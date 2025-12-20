@@ -92,10 +92,17 @@
 
 ## 输出参数
 
-| 输出       | 说明                                                              |
-| ---------- | ----------------------------------------------------------------- |
-| `response` | 来自 LLM 的原始响应（始终可用）                                   |
-| `<field>`  | 使用 tool_schema 时，函数参数 JSON 中的每个字段都会成为独立的输出 |
+| 输出                                    | 说明                                                              |
+| --------------------------------------- | ----------------------------------------------------------------- |
+| `response`                              | 来自 LLM 的原始响应（始终可用）                                   |
+| `prompt_tokens`                         | 提示词的 token 数量                                               |
+| `completion_tokens`                     | 回复的 token 数量                                                 |
+| `total_tokens`                          | 总 token 使用量                                                   |
+| `prompt_cached_tokens`                  | 提示词中的缓存 token 数量（节省成本，如可用）                     |
+| `completion_reasoning_tokens`           | 推理 token 数量，用于 o1/o3 模型（如可用）                        |
+| `completion_accepted_prediction_tokens` | 已接受的预测 token 数量（如可用）                                 |
+| `completion_rejected_prediction_tokens` | 已拒绝的预测 token 数量（如可用）                                 |
+| `<field>`                               | 使用 tool_schema 时，函数参数 JSON 中的每个字段都会成为独立的输出 |
 
 **输出行为：**
 

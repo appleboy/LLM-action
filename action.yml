@@ -53,6 +53,20 @@ inputs:
 outputs:
   response:
     description: 'The response from the LLM'
+  prompt_tokens:
+    description: 'Number of tokens in the prompt'
+  completion_tokens:
+    description: 'Number of tokens in the completion'
+  total_tokens:
+    description: 'Total number of tokens used'
+  prompt_cached_tokens:
+    description: 'Number of cached tokens in the prompt (cost saving)'
+  completion_reasoning_tokens:
+    description: 'Number of reasoning tokens (for o1/o3 models)'
+  completion_accepted_prediction_tokens:
+    description: 'Number of accepted prediction tokens'
+  completion_rejected_prediction_tokens:
+    description: 'Number of rejected prediction tokens'
 
 runs:
   using: 'docker'

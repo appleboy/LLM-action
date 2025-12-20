@@ -92,10 +92,17 @@
 
 ## 輸出參數
 
-| 輸出       | 說明                                                              |
-| ---------- | ----------------------------------------------------------------- |
-| `response` | 來自 LLM 的原始回應（始終可用）                                   |
-| `<field>`  | 使用 tool_schema 時，函數參數 JSON 中的每個欄位都會成為獨立的輸出 |
+| 輸出                                    | 說明                                                              |
+| --------------------------------------- | ----------------------------------------------------------------- |
+| `response`                              | 來自 LLM 的原始回應（始終可用）                                   |
+| `prompt_tokens`                         | 提示詞的 token 數量                                               |
+| `completion_tokens`                     | 回覆的 token 數量                                                 |
+| `total_tokens`                          | 總 token 使用量                                                   |
+| `prompt_cached_tokens`                  | 提示詞中的快取 token 數量（節省成本，如可用）                     |
+| `completion_reasoning_tokens`           | 推理 token 數量，用於 o1/o3 模型（如可用）                        |
+| `completion_accepted_prediction_tokens` | 已接受的預測 token 數量（如可用）                                 |
+| `completion_rejected_prediction_tokens` | 已拒絕的預測 token 數量（如可用）                                 |
+| `<field>`                               | 使用 tool_schema 時，函數參數 JSON 中的每個欄位都會成為獨立的輸出 |
 
 **輸出行為：**
 

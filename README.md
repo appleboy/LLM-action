@@ -92,10 +92,17 @@ A GitHub Action to interact with OpenAI-compatible LLM services, supporting cust
 
 ## Outputs
 
-| Output     | Description                                                                                   |
-| ---------- | --------------------------------------------------------------------------------------------- |
-| `response` | The raw response from the LLM (always available)                                              |
-| `<field>`  | When using tool_schema, each field from the function arguments JSON becomes a separate output |
+| Output                                 | Description                                                                                   |
+| -------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `response`                             | The raw response from the LLM (always available)                                              |
+| `prompt_tokens`                        | Number of tokens in the prompt                                                                |
+| `completion_tokens`                    | Number of tokens in the completion                                                            |
+| `total_tokens`                         | Total number of tokens used                                                                   |
+| `prompt_cached_tokens`                 | Number of cached tokens in the prompt (cost saving, if available)                             |
+| `completion_reasoning_tokens`          | Number of reasoning tokens for o1/o3 models (if available)                                    |
+| `completion_accepted_prediction_tokens`| Number of accepted prediction tokens (if available)                                           |
+| `completion_rejected_prediction_tokens`| Number of rejected prediction tokens (if available)                                           |
+| `<field>`                              | When using tool_schema, each field from the function arguments JSON becomes a separate output |
 
 **Output Behavior:**
 

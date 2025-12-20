@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/appleboy/com/gh"
 	openai "github.com/sashabaranov/go-openai"
@@ -140,6 +141,19 @@ func run() error {
 	fmt.Println(response)
 	fmt.Println("--- End Response ---")
 
+	// Print token usage
+	fmt.Println("--- Token Usage ---")
+	fmt.Printf("Prompt Tokens: %d\n", resp.Usage.PromptTokens)
+	fmt.Printf("Completion Tokens: %d\n", resp.Usage.CompletionTokens)
+	fmt.Printf("Total Tokens: %d\n", resp.Usage.TotalTokens)
+	if resp.Usage.PromptTokensDetails != nil {
+		fmt.Printf("Cached Tokens: %d\n", resp.Usage.PromptTokensDetails.CachedTokens)
+	}
+	if resp.Usage.CompletionTokensDetails != nil {
+		fmt.Printf("Reasoning Tokens: %d\n", resp.Usage.CompletionTokensDetails.ReasoningTokens)
+	}
+	fmt.Println("--- End Token Usage ---")
+
 	// Set GitHub Actions output
 	var toolArgs map[string]string
 	if toolMeta != nil {
@@ -159,6 +173,23 @@ func run() error {
 			"Warning: tool schema field '%s' is reserved and will be skipped\n",
 			ReservedOutputField,
 		)
+	}
+
+	// Add token usage to output
+	output["prompt_tokens"] = strconv.Itoa(resp.Usage.PromptTokens)
+	output["completion_tokens"] = strconv.Itoa(resp.Usage.CompletionTokens)
+	output["total_tokens"] = strconv.Itoa(resp.Usage.TotalTokens)
+
+	// Add prompt token details if available
+	if resp.Usage.PromptTokensDetails != nil {
+		output["prompt_cached_tokens"] = strconv.Itoa(resp.Usage.PromptTokensDetails.CachedTokens)
+	}
+
+	// Add completion token details if available
+	if d := resp.Usage.CompletionTokensDetails; d != nil {
+		output["completion_reasoning_tokens"] = strconv.Itoa(d.ReasoningTokens)
+		output["completion_accepted_prediction_tokens"] = strconv.Itoa(d.AcceptedPredictionTokens)
+		output["completion_rejected_prediction_tokens"] = strconv.Itoa(d.RejectedPredictionTokens)
 	}
 
 	if err := gh.SetOutput(output); err != nil {
