@@ -66,7 +66,7 @@ jobs:
           go-version: "stable"
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+        uses: docker/setup-qemu-action@v4
         if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
 
       - name: Set up Docker Buildx
