@@ -60,7 +60,7 @@ jobs:
 
       # Build and scan workflow for push/PR
       - name: Setup go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
         with:
           go-version: "stable"
