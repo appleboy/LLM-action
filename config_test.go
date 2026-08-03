@@ -21,14 +21,15 @@ func TestLoadConfig(t *testing.T) {
 		{
 			name: "Valid config with all fields",
 			envVars: map[string]string{
-				"INPUT_BASE_URL":        "http://localhost:8080/v1",
-				"INPUT_API_KEY":         "test-key",
-				"INPUT_MODEL":           "gpt-4",
-				"INPUT_SKIP_SSL_VERIFY": "true",
-				"INPUT_SYSTEM_PROMPT":   "You are helpful",
-				"INPUT_INPUT_PROMPT":    "Hello",
-				"INPUT_TEMPERATURE":     "0.5",
-				"INPUT_MAX_TOKENS":      "500",
+				"INPUT_BASE_URL":              "http://localhost:8080/v1",
+				"INPUT_API_KEY":               "test-key",
+				"INPUT_MODEL":                 "gpt-4",
+				"INPUT_SKIP_SSL_VERIFY":       "true",
+				"INPUT_SYSTEM_PROMPT":         "You are helpful",
+				"INPUT_INPUT_PROMPT":          "Hello",
+				"INPUT_TEMPERATURE":           "0.5",
+				"INPUT_MAX_TOKENS":            "500",
+				"INPUT_MAX_COMPLETION_TOKENS": "800",
 			},
 			expectError: false,
 			validate: func(t *testing.T, c *Config) {
@@ -56,6 +57,9 @@ func TestLoadConfig(t *testing.T) {
 				if c.MaxTokens != 500 {
 					t.Errorf("expected max_tokens 500, got %d", c.MaxTokens)
 				}
+				if c.MaxCompletionTokens != 800 {
+					t.Errorf("expected max_completion_tokens 800, got %d", c.MaxCompletionTokens)
+				}
 			},
 		},
 		{
@@ -74,6 +78,12 @@ func TestLoadConfig(t *testing.T) {
 				}
 				if c.MaxTokens != 1000 {
 					t.Errorf("expected default max_tokens 1000, got %d", c.MaxTokens)
+				}
+				if c.MaxCompletionTokens != 0 {
+					t.Errorf(
+						"expected default max_completion_tokens 0, got %d",
+						c.MaxCompletionTokens,
+					)
 				}
 				if c.SkipSSLVerify {
 					t.Error("expected default skip_ssl_verify to be false")
@@ -118,6 +128,24 @@ func TestLoadConfig(t *testing.T) {
 				"INPUT_API_KEY":      "test-key",
 				"INPUT_INPUT_PROMPT": "Hello",
 				"INPUT_MAX_TOKENS":   "-100",
+			},
+			expectError: true,
+		},
+		{
+			name: "Invalid max completion tokens",
+			envVars: map[string]string{
+				"INPUT_API_KEY":               "test-key",
+				"INPUT_INPUT_PROMPT":          "Hello",
+				"INPUT_MAX_COMPLETION_TOKENS": "abc",
+			},
+			expectError: true,
+		},
+		{
+			name: "Negative max completion tokens",
+			envVars: map[string]string{
+				"INPUT_API_KEY":               "test-key",
+				"INPUT_INPUT_PROMPT":          "Hello",
+				"INPUT_MAX_COMPLETION_TOKENS": "-100",
 			},
 			expectError: true,
 		},
@@ -239,6 +267,39 @@ func TestConfigParseMaxTokens(t *testing.T) {
 			}
 			if !tt.expectError && config.MaxTokens != tt.expected {
 				t.Errorf("expected %v, got %v", tt.expected, config.MaxTokens)
+			}
+		})
+	}
+}
+
+func TestConfigParseMaxCompletionTokens(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		expected    int
+		expectError bool
+	}{
+		{"Valid tokens", "500", 500, false},
+		{"Large tokens", "4000", 4000, false},
+		{"Empty string", "", 0, false}, // should keep default
+		{"Invalid tokens", "abc", 0, true},
+		{"Negative tokens", "-100", 0, true},
+		{"Zero tokens", "0", 0, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := &Config{}
+			err := config.parseMaxCompletionTokens(tt.input)
+
+			if tt.expectError && err == nil {
+				t.Error("expected error but got none")
+			}
+			if !tt.expectError && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if !tt.expectError && config.MaxCompletionTokens != tt.expected {
+				t.Errorf("expected %v, got %v", tt.expected, config.MaxCompletionTokens)
 			}
 		})
 	}
@@ -410,6 +471,7 @@ func clearEnvVars() {
 	os.Unsetenv("INPUT_TOOL_SCHEMA")
 	os.Unsetenv("INPUT_TEMPERATURE")
 	os.Unsetenv("INPUT_MAX_TOKENS")
+	os.Unsetenv("INPUT_MAX_COMPLETION_TOKENS")
 	os.Unsetenv("INPUT_DEBUG")
 	os.Unsetenv("INPUT_HEADERS")
 }
