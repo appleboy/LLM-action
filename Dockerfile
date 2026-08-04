@@ -25,20 +25,12 @@ FROM alpine:3.22
 
 RUN apk --no-cache add ca-certificates
 
-# Create non-root user
-RUN addgroup -g 1000 appuser && \
-    adduser -D -u 1000 -G appuser appuser
-
-WORKDIR /home/appuser
+WORKDIR /app
 
 # Copy the binary from builder
-COPY --from=builder /app/llm-action /home/appuser/
+COPY --from=builder /app/llm-action /app/
 
-# Change ownership to non-root user
-RUN chown -R appuser:appuser /home/appuser
-
-# Switch to non-root user
-USER appuser
-
-# Run the application
-ENTRYPOINT ["/home/appuser/llm-action"]
+# GitHub docker actions must run as root: the runner's file-command files
+# (GITHUB_OUTPUT etc.) are owned by the runner user and not writable by
+# an unprivileged container user.
+ENTRYPOINT ["/app/llm-action"]
