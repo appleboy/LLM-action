@@ -25,8 +25,11 @@ type Config struct {
 	ToolSchema    string
 	Temperature   float64
 	MaxTokens     int
-	Debug         bool
-	Headers       map[string]string
+	// MaxCompletionTokens is the reasoning-model replacement for MaxTokens
+	// (o1/o3/o4/gpt-5 series reject max_tokens). Takes precedence over MaxTokens.
+	MaxCompletionTokens int
+	Debug               bool
+	Headers             map[string]string
 }
 
 // LoadConfig loads configuration from environment variables
@@ -99,6 +102,11 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
+	maxCompletionTokens := os.Getenv("INPUT_MAX_COMPLETION_TOKENS")
+	if err := config.parseMaxCompletionTokens(maxCompletionTokens); err != nil {
+		return nil, err
+	}
+
 	if err := config.parseSkipSSL(os.Getenv("INPUT_SKIP_SSL_VERIFY")); err != nil {
 		return nil, err
 	}
@@ -142,6 +150,23 @@ func (c *Config) parseMaxTokens(s string) error {
 		return fmt.Errorf("max_tokens must be positive")
 	}
 	c.MaxTokens = tokens
+	return nil
+}
+
+// parseMaxCompletionTokens parses max completion tokens string to int
+func (c *Config) parseMaxCompletionTokens(s string) error {
+	if s == "" {
+		return nil
+	}
+
+	tokens, err := strconv.Atoi(s)
+	if err != nil {
+		return fmt.Errorf("invalid max_completion_tokens value: %w", err)
+	}
+	if tokens < 0 {
+		return fmt.Errorf("max_completion_tokens must be positive")
+	}
+	c.MaxCompletionTokens = tokens
 	return nil
 }
 

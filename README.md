@@ -113,6 +113,7 @@ Whether you're building automated code reviews, PR summaries, issue classificati
 | `tool_schema`     | JSON schema for structured output via function calling. Supports plain text, file path, or URL. Supports Go templates      | No       | `''`                        |
 | `temperature`     | Temperature for response randomness (0.0-2.0)                                                                              | No       | `0.7`                       |
 | `max_tokens`      | Maximum tokens in the response                                                                                             | No       | `1000`                      |
+| `max_completion_tokens` | Maximum completion tokens for reasoning models (o1/o3/o4/gpt-5 series). Takes precedence over `max_tokens`           | No       | `''`                        |
 | `debug`           | Enable debug mode to print all parameters (API key will be masked)                                                         | No       | `false`                     |
 | `headers`         | Custom HTTP headers for API requests. Format: `Header1:Value1,Header2:Value2` or multiline                                 | No       | `''`                        |
 
