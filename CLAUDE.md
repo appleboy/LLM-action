@@ -21,7 +21,7 @@ go test -v -run TestName ./...
 ### Linting
 
 ```bash
-# Run golangci-lint (requires golangci-lint v2.6)
+# Run golangci-lint (requires golangci-lint v2.13)
 golangci-lint run --verbose
 
 # Check Dockerfile
@@ -128,7 +128,7 @@ go run .
 
 ## Code Style & Standards
 
-- Go version: 1.25
+- Go version: 1.26
 - Linter configuration in `.golangci.yml` includes: gosec, govet, staticcheck, errcheck, and formatting tools (gofmt, gofumpt, goimports, golines)
 - Security scanning via gosec is enabled; intentional security exceptions are marked with `#nosec` comments
 - All tests should include race detection (`-race` flag)

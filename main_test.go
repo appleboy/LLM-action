@@ -88,7 +88,8 @@ func TestBuildChatRequest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			req := buildChatRequest(tt.config, messages, nil)
 
-			if req.MaxTokens != tt.expectedMaxTokens {
+			if req.MaxTokens != tt.expectedMaxTokens { //nolint:staticcheck // Verify legacy max_tokens compatibility.
+				//nolint:staticcheck // Report the legacy field.
 				t.Errorf("MaxTokens = %d, want %d", req.MaxTokens, tt.expectedMaxTokens)
 			}
 			if req.MaxCompletionTokens != tt.expectedMaxCompletionTokens {
