@@ -117,6 +117,15 @@
 | `debug`                 | 啟用偵錯模式以顯示所有參數（API 金鑰將被遮罩）                                         | 否   | `false`                     |
 | `headers`               | 自訂 HTTP headers。格式：`Header1:Value1,Header2:Value2` 或多行格式                    | 否   | `''`                        |
 
+新設定建議使用 `max_completion_tokens`：
+
+```yaml
+with:
+  max_completion_tokens: "2000"
+```
+
+它優先於 `max_tokens`。舊服務若只支援 `max_tokens`，仍可保留；未設定 `max_completion_tokens` 時，Action 會自動為可辨識的推理模型（o1/o3/o4/gpt-5 系列）將 `max_tokens` 轉為 `max_completion_tokens` 傳送。
+
 ## 輸出參數
 
 | 輸出                                    | 說明                                                              |

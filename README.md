@@ -117,6 +117,15 @@ Whether you're building automated code reviews, PR summaries, issue classificati
 | `debug`                 | Enable debug mode to print all parameters (API key will be masked)                                                         | No       | `false`                     |
 | `headers`               | Custom HTTP headers for API requests. Format: `Header1:Value1,Header2:Value2` or multiline                                 | No       | `''`                        |
 
+For new configurations, prefer `max_completion_tokens`:
+
+```yaml
+with:
+  max_completion_tokens: "2000"
+```
+
+It takes precedence over `max_tokens`. Keep `max_tokens` for legacy services that only support that field. When `max_completion_tokens` is unset, the Action automatically sends `max_tokens` as `max_completion_tokens` for recognized reasoning models (o1/o3/o4/gpt-5 series).
+
 ## Outputs
 
 | Output                                  | Description                                                                                   |
