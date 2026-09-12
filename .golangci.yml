@@ -26,6 +26,9 @@ linters:
     - whitespace
     - copyloopvar
     - predeclared
+  settings:
+    goconst:
+      ignore-tests: true
   exclusions:
     generated: lax
     presets:
@@ -58,6 +61,5 @@ formatters:
       # Module path which contains the source code being formatted.
       # Default: ""
       module-path: github/appleboy/go-jira
-      # Choose whether to use the extra rules.
-      # Default: false
-      extra-rules: true
+      extra:
+        group-params: true
