@@ -23,7 +23,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo \
 # Final stage
 FROM alpine:3.22
 
-RUN apk --no-cache add ca-certificates
+# hadolint ignore=DL3018
+RUN apk --no-cache upgrade && \
+    apk --no-cache add ca-certificates
 
 # Create non-root user
 RUN addgroup -g 1000 appuser && \
@@ -38,7 +40,7 @@ COPY --from=builder /app/llm-action /home/appuser/
 RUN chown -R appuser:appuser /home/appuser
 
 # Switch to non-root user
-USER appuser
+USER 1000:1000
 
 # Run the application
 ENTRYPOINT ["/home/appuser/llm-action"]
