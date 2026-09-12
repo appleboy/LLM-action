@@ -37,6 +37,10 @@ inputs:
     description: 'Maximum tokens in the response'
     required: false
     default: '1000'
+  max_completion_tokens:
+    description: 'Maximum completion tokens for reasoning models (o1/o3/o4/gpt-5 series reject max_tokens). Takes precedence over max_tokens. For reasoning models, max_tokens is sent as max_completion_tokens automatically when this is unset.'
+    required: false
+    default: ''
   tool_schema:
     description: 'JSON schema for structured output via function calling. Supports plain text, file path, or URL. Supports Go templates with environment variables (e.g., {{.GITHUB_REPOSITORY}}).'
     required: false

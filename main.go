@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/appleboy/com/gh"
 	openai "github.com/sashabaranov/go-openai"
@@ -115,6 +116,22 @@ func prepareToolSchema(config *Config) (*ToolMeta, error) {
 	return toolMeta, nil
 }
 
+// reasoningModelPrefixes mirrors go-openai's ReasoningValidator: these model
+// families reject max_tokens and non-default temperature before any request
+// is sent.
+var reasoningModelPrefixes = []string{"o1", "o3", "o4", "gpt-5"}
+
+// isReasoningModel reports whether the model only accepts reasoning-model
+// parameters (max_completion_tokens instead of max_tokens, fixed temperature).
+func isReasoningModel(model string) bool {
+	for _, prefix := range reasoningModelPrefixes {
+		if strings.HasPrefix(model, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
 // buildChatRequest creates a chat completion request with optional tool support
 func buildChatRequest(
 	config *Config,
@@ -122,10 +139,29 @@ func buildChatRequest(
 	toolMeta *ToolMeta,
 ) openai.ChatCompletionRequest {
 	req := openai.ChatCompletionRequest{
-		Model:       config.Model,
-		Messages:    messages,
-		Temperature: float32(config.Temperature),
-		MaxTokens:   config.MaxTokens,
+		Model:    config.Model,
+		Messages: messages,
+	}
+
+	switch {
+	case config.MaxCompletionTokens > 0:
+		req.MaxCompletionTokens = config.MaxCompletionTokens
+	case isReasoningModel(config.Model):
+		// Reasoning models reject max_tokens — send the same budget through
+		// max_completion_tokens so existing configs keep working.
+		req.MaxCompletionTokens = config.MaxTokens
+	default:
+		req.MaxTokens = config.MaxTokens
+	}
+
+	if isReasoningModel(config.Model) {
+		// Temperature is fixed at 1 for reasoning models, sending any other
+		// value fails the request.
+		if config.Temperature != 1 {
+			fmt.Println("Note: temperature is fixed at 1 for reasoning models, omitting it")
+		}
+	} else {
+		req.Temperature = float32(config.Temperature)
 	}
 
 	// Add tool if schema provided

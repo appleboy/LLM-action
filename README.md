@@ -101,34 +101,35 @@ Whether you're building automated code reviews, PR summaries, issue classificati
 
 ## Inputs
 
-| Input             | Description                                                                                                                | Required | Default                     |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------- |
-| `base_url`        | Base URL for OpenAI Compatible API endpoint                                                                                | No       | `https://api.openai.com/v1` |
-| `api_key`         | API Key for authentication                                                                                                 | Yes      | -                           |
-| `model`           | Model name to use                                                                                                          | No       | `gpt-4o`                    |
-| `skip_ssl_verify` | Skip SSL certificate verification                                                                                          | No       | `false`                     |
-| `ca_cert`         | Custom CA certificate. Supports certificate content, file path, or URL                                                     | No       | `''`                        |
-| `system_prompt`   | System prompt to set the context. Supports plain text, file path, or URL. Supports Go templates with environment variables | No       | `''`                        |
-| `input_prompt`    | User input prompt for the LLM. Supports plain text, file path, or URL. Supports Go templates with environment variables    | Yes      | -                           |
-| `tool_schema`     | JSON schema for structured output via function calling. Supports plain text, file path, or URL. Supports Go templates      | No       | `''`                        |
-| `temperature`     | Temperature for response randomness (0.0-2.0)                                                                              | No       | `0.7`                       |
-| `max_tokens`      | Maximum tokens in the response                                                                                             | No       | `1000`                      |
-| `debug`           | Enable debug mode to print all parameters (API key will be masked)                                                         | No       | `false`                     |
-| `headers`         | Custom HTTP headers for API requests. Format: `Header1:Value1,Header2:Value2` or multiline                                 | No       | `''`                        |
+| Input                   | Description                                                                                                                | Required | Default                     |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------- |
+| `base_url`              | Base URL for OpenAI Compatible API endpoint                                                                                | No       | `https://api.openai.com/v1` |
+| `api_key`               | API Key for authentication                                                                                                 | Yes      | -                           |
+| `model`                 | Model name to use                                                                                                          | No       | `gpt-4o`                    |
+| `skip_ssl_verify`       | Skip SSL certificate verification                                                                                          | No       | `false`                     |
+| `ca_cert`               | Custom CA certificate. Supports certificate content, file path, or URL                                                     | No       | `''`                        |
+| `system_prompt`         | System prompt to set the context. Supports plain text, file path, or URL. Supports Go templates with environment variables | No       | `''`                        |
+| `input_prompt`          | User input prompt for the LLM. Supports plain text, file path, or URL. Supports Go templates with environment variables    | Yes      | -                           |
+| `tool_schema`           | JSON schema for structured output via function calling. Supports plain text, file path, or URL. Supports Go templates      | No       | `''`                        |
+| `temperature`           | Temperature for response randomness (0.0-2.0)                                                                              | No       | `0.7`                       |
+| `max_tokens`            | Maximum tokens in the response                                                                                             | No       | `1000`                      |
+| `max_completion_tokens` | Maximum completion tokens for reasoning models (o1/o3/o4/gpt-5 series). Takes precedence over `max_tokens`                 | No       | `''`                        |
+| `debug`                 | Enable debug mode to print all parameters (API key will be masked)                                                         | No       | `false`                     |
+| `headers`               | Custom HTTP headers for API requests. Format: `Header1:Value1,Header2:Value2` or multiline                                 | No       | `''`                        |
 
 ## Outputs
 
-| Output                                 | Description                                                                                   |
-| -------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `response`                             | The raw response from the LLM (always available)                                              |
-| `prompt_tokens`                        | Number of tokens in the prompt                                                                |
-| `completion_tokens`                    | Number of tokens in the completion                                                            |
-| `total_tokens`                         | Total number of tokens used                                                                   |
-| `prompt_cached_tokens`                 | Number of cached tokens in the prompt (cost saving, if available)                             |
-| `completion_reasoning_tokens`          | Number of reasoning tokens for o1/o3 models (if available)                                    |
-| `completion_accepted_prediction_tokens`| Number of accepted prediction tokens (if available)                                           |
-| `completion_rejected_prediction_tokens`| Number of rejected prediction tokens (if available)                                           |
-| `<field>`                              | When using tool_schema, each field from the function arguments JSON becomes a separate output |
+| Output                                  | Description                                                                                   |
+| --------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `response`                              | The raw response from the LLM (always available)                                              |
+| `prompt_tokens`                         | Number of tokens in the prompt                                                                |
+| `completion_tokens`                     | Number of tokens in the completion                                                            |
+| `total_tokens`                          | Total number of tokens used                                                                   |
+| `prompt_cached_tokens`                  | Number of cached tokens in the prompt (cost saving, if available)                             |
+| `completion_reasoning_tokens`           | Number of reasoning tokens for o1/o3 models (if available)                                    |
+| `completion_accepted_prediction_tokens` | Number of accepted prediction tokens (if available)                                           |
+| `completion_rejected_prediction_tokens` | Number of rejected prediction tokens (if available)                                           |
+| `<field>`                               | When using tool_schema, each field from the function arguments JSON becomes a separate output |
 
 **Output Behavior:**
 
