@@ -83,6 +83,7 @@ func isFilePath(input string) bool {
 	path := strings.TrimPrefix(input, "file://")
 
 	// Check if file exists
+	// #nosec G703 -- loading a caller-selected local path is a documented feature.
 	if _, err := os.Stat(path); err == nil {
 		return true
 	}
@@ -101,6 +102,7 @@ func loadFromURL(url string) (string, error) {
 
 	// Create request with context
 	ctx := context.Background()
+	// #nosec G704 -- loading a caller-selected HTTP URL is a documented feature.
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return "", fmt.Errorf("failed to create request for URL %s: %w", url, err)
@@ -110,6 +112,7 @@ func loadFromURL(url string) (string, error) {
 	req.Header.Set("User-Agent", "LLM-Action/1.0")
 
 	// Send request
+	// #nosec G704 -- the request URL is intentionally supplied by the workflow author.
 	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch URL %s: %w", url, err)
@@ -136,6 +139,7 @@ func loadFromFile(path string) (string, error) {
 	cleanPath := strings.TrimPrefix(path, "file://")
 
 	// Read file
+	// #nosec G703 -- loading a caller-selected local path is a documented feature.
 	content, err := os.ReadFile(cleanPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read file %s: %w", cleanPath, err)
