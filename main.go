@@ -151,7 +151,7 @@ func buildChatRequest(
 		// max_completion_tokens so existing configs keep working.
 		req.MaxCompletionTokens = config.MaxTokens
 	default:
-		req.MaxTokens = config.MaxTokens
+		req.MaxTokens = config.MaxTokens //nolint:staticcheck // Preserve max_tokens for compatible services and non-reasoning models.
 	}
 
 	if isReasoningModel(config.Model) {

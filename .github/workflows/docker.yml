@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
@@ -27,7 +27,7 @@ jobs:
           echo "REPO=${GITHUB_REPOSITORY,,}" >>${GITHUB_ENV}
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@v4.6.0
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
@@ -44,7 +44,7 @@ jobs:
           severity: "CRITICAL,HIGH"
 
       - name: Upload Trivy results to GitHub Security tab (scheduled)
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v4.38.0
         if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && always()
         with:
           sarif_file: "trivy-docker-results.sarif"
@@ -60,17 +60,17 @@ jobs:
 
       # Build and scan workflow for push/PR
       - name: Setup go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@v7.0.0
         if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
         with:
           go-version: "stable"
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v4
+        uses: docker/setup-qemu-action@v4.3.0
         if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@v4.3.0
         if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
 
       - name: Get version info
@@ -89,7 +89,7 @@ jobs:
       - name: Docker meta
         id: docker-meta
         if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@v6.2.0
         with:
           images: |
             ghcr.io/${{ env.REPO }}
@@ -100,7 +100,7 @@ jobs:
             type=semver,pattern={{major}}
 
       - name: Build for scanning
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@v7.3.0
         if: github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
         with:
           context: .
@@ -124,7 +124,7 @@ jobs:
           severity: "CRITICAL,HIGH"
 
       - name: Upload Trivy results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@v4.38.0
         if: (github.event_name != 'schedule' && github.event_name != 'workflow_dispatch') && always()
         with:
           sarif_file: "trivy-docker-results.sarif"
@@ -139,7 +139,7 @@ jobs:
           exit-code: "1"
 
       - name: Build and push
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@v7.3.0
         if: github.event_name != 'pull_request' && github.event_name != 'schedule' && github.event_name != 'workflow_dispatch'
         with:
           context: .
