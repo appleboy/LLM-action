@@ -101,7 +101,7 @@
 
 ## 输入参数
 
-| 输入                      | 说明                                                                                   | 必填 | 默认值                      |
+| 输入                    | 说明                                                                                   | 必填 | 默认值                      |
 | ----------------------- | -------------------------------------------------------------------------------------- | ---- | --------------------------- |
 | `base_url`              | OpenAI 兼容 API 端点的基础 URL                                                         | 否   | `https://api.openai.com/v1` |
 | `api_key`               | 用于验证的 API 密钥                                                                    | 是   | -                           |
@@ -113,9 +113,18 @@
 | `tool_schema`           | 用于结构化输出的 JSON schema（函数调用）。支持纯文本、文件路径或 URL。支持 Go 模板语法 | 否   | `''`                        |
 | `temperature`           | 响应随机性的温度值（0.0-2.0）                                                          | 否   | `0.7`                       |
 | `max_tokens`            | 响应中的最大令牌数                                                                     | 否   | `1000`                      |
-| `max_completion_tokens` | 推理模型（o1/o3/o4/gpt-5 系列）的最大完成令牌数。优先于 `max_tokens` | 否 | `''` |
+| `max_completion_tokens` | 推理模型（o1/o3/o4/gpt-5 系列）的最大完成令牌数。优先于 `max_tokens`                   | 否   | `''`                        |
 | `debug`                 | 启用调试模式以显示所有参数（API 密钥将被屏蔽）                                         | 否   | `false`                     |
 | `headers`               | 自定义 HTTP headers。格式：`Header1:Value1,Header2:Value2` 或多行格式                  | 否   | `''`                        |
+
+新配置建议使用 `max_completion_tokens`：
+
+```yaml
+with:
+  max_completion_tokens: "2000"
+```
+
+它优先于 `max_tokens`。旧服务若只支持 `max_tokens`，仍可保留；未设置 `max_completion_tokens` 时，Action 会自动为可识别的推理模型（o1/o3/o4/gpt-5 系列）将 `max_tokens` 转为 `max_completion_tokens` 发送。
 
 ## 输出参数
 
