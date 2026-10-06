@@ -1,0 +1,8 @@
+misconfigurations:
+  - id: DS-0002
+    paths:
+      - Dockerfile
+    statement: >-
+      GitHub Docker actions require root to access the mounted workspace and
+      runner-owned output files. This exception applies only to the action image.
+      https://docs.github.com/en/actions/reference/workflows-and-actions/dockerfile-support#user
